@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1d5fd6">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>용접 파괴검사 체크시트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>html{-webkit-text-size-adjust:100%}body{margin:0}[hidden]{display:none!important}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>
+/* Layout: phone-first work tool — sticky header, one working column, fixed bottom tab bar; the sheet view reproduces the Excel grid inside a horizontal scroller. */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --sunk:#e8ecf0; --line:#d3d9e0;
+  --fg:#16202b; --muted:#5b6876; --accent:#1d5fd6; --accent-ink:#ffffff;
+  --ok:#16794a; --ok-bg:#e2f4ea; --ng:#c62b2b; --ng-bg:#fbe5e5; --warn:#9a6200; --warn-bg:#fff1d6;
+  --font-body:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#18202a; --sunk:#202a36; --line:#2e3a48;
+  --fg:#e6ebf0; --muted:#97a3b0; --accent:#5b93ff; --accent-ink:#0b1220;
+  --ok:#4cc58a; --ok-bg:#163527; --ng:#ff6b6b; --ng-bg:#3a1a1c; --warn:#f2b54a; --warn-bg:#3a2c12; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#18202a; --sunk:#202a36; --line:#2e3a48;
+  --fg:#e6ebf0; --muted:#97a3b0; --accent:#5b93ff; --accent-ink:#0b1220;
+  --ok:#4cc58a; --ok-bg:#163527; --ng:#ff6b6b; --ng-bg:#3a1a1c; --warn:#f2b54a; --warn-bg:#3a2c12; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 calc(84px + env(safe-area-inset-bottom,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:960px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:14px 10px;display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line)}
+header.top h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+header.top .sub{font-size:12px;color:var(--muted)}
+.banner{margin-top:12px;padding:10px 12px;border-radius:var(--r);background:var(--warn-bg);color:var(--warn);font-size:13px}
+section.view{padding-block:16px;display:grid;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px;min-width:0}
+.panel h2{margin:0;font-size:15px;font-weight:700}
+.label{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.field{display:grid;gap:4px;min-width:0}
+.field input,.field select{width:100%;min-width:0;max-width:100%;min-height:44px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.method{font-size:13px;color:var(--muted);border-left:3px solid var(--line);padding-left:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{min-height:36px;padding:0 12px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.danger{color:var(--ng);border-color:var(--ng)}
+.progress{font-size:13px;color:var(--muted)}
+.progress b{color:var(--fg)}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.slot{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:grid;grid-template-rows:auto auto auto}
+.slot.done{border-color:var(--ok)}
+.slot.ng{border-color:var(--ng)}
+.slot .head{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;font-weight:700;font-size:14px}
+.slot .head .tag{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;background:var(--warn-bg);color:var(--warn)}
+.shot{position:relative;aspect-ratio:4/3;max-width:100%;background:var(--sunk);display:grid;place-items:center;border:0;padding:0;width:100%}
+.shot{overflow:hidden;min-height:0}
+.shot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.shot .cam{display:grid;gap:4px;justify-items:center;color:var(--muted);font-size:13px;font-weight:600}
+.shot .cam svg{width:28px;height:28px}
+.shot .busy{position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--bg) 70%,transparent);font-size:13px;font-weight:600}
+.shot{cursor:pointer;color:inherit}
+.alt{border:0;background:none;color:var(--accent);font-size:12px;font-weight:600;padding:0;min-height:28px}
+.help{background:var(--warn-bg);color:var(--warn);border-radius:var(--r);padding:12px;font-size:13px;display:grid;gap:6px}
+.help b{color:var(--fg)}
+.verdict{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line)}
+.verdict button{min-height:44px;border:0;background:transparent;font-weight:700;font-family:var(--font-mono)}
+.verdict button+button{border-left:1px solid var(--line)}
+.verdict button[aria-pressed="true"].ok{background:var(--ok-bg);color:var(--ok)}
+.verdict button[aria-pressed="true"].ng{background:var(--ng-bg);color:var(--ng)}
+.retake{font-size:12px;color:var(--muted);padding:0 10px 8px;display:flex;justify-content:space-between;gap:6px}
+.sticky-save{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:4;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;display:flex;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs a{display:grid;justify-items:center;gap:2px;padding:9px 0 10px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:600}
+nav.tabs a svg{width:22px;height:22px}
+nav.tabs a[aria-current="page"]{color:var(--accent)}
+/* sheet */
+.scroller{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.sheet{border-collapse:collapse;min-width:100%;font-size:13px}
+table.sheet th,table.sheet td{border:1px solid var(--line);padding:4px;text-align:center;vertical-align:middle}
+table.sheet thead th{background:var(--sunk);font-weight:700;white-space:nowrap}
+table.sheet td.part{text-align:left;min-width:120px;padding:6px 8px}
+table.sheet td.part .pn{font-family:var(--font-mono);font-weight:600}
+table.sheet td.part .meta{font-size:11px;color:var(--muted)}
+table.sheet td.ph{width:84px;min-width:84px;height:76px;padding:2px}
+table.sheet td.ph button{border:0;padding:0;background:none;display:block;width:80px;height:72px}
+table.sheet td.ph img{width:80px;height:72px;object-fit:cover;display:block;border-radius:3px}
+table.sheet td.na{background:repeating-linear-gradient(135deg,var(--sunk) 0 4px,transparent 4px 9px)}
+table.sheet tr.judge td{font-family:var(--font-mono);font-weight:700;height:30px}
+td.v-OK{color:var(--ok);background:var(--ok-bg)} td.v-NG{color:var(--ng);background:var(--ng-bg)}
+.pill{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.ng{background:var(--ng-bg);color:var(--ng)} .pill.warn{background:var(--warn-bg);color:var(--warn)}
+.summary{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted)}
+.summary b{font-size:18px;color:var(--fg);font-family:var(--font-mono);margin-right:4px}
+.empty{padding:28px 16px;text-align:center;color:var(--muted);font-size:14px}
+/* parts */
+.plist{display:grid;gap:0}
+.pitem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.pitem:last-child{border-bottom:0}
+.pitem .pn{font-family:var(--font-mono);font-weight:600}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper button{width:40px;height:40px;border:0;background:var(--sunk);font-size:18px;font-weight:700}
+.stepper span{min-width:44px;text-align:center;font-family:var(--font-mono);font-weight:600}
+/* lightbox */
+.lb{position:fixed;inset:0;z-index:20;background:rgba(5,8,12,.92);display:grid;grid-template-rows:1fr auto;padding:calc(12px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.lb img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;display:block;min-height:0}
+.lb .cap{color:#e6ebf0;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;padding-top:10px;flex-wrap:wrap}
+.lb .cap button{background:#e6ebf0;color:#16202b;border:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(150px + env(safe-area-inset-bottom,0px));z-index:30;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;font-weight:600;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.slot{transition:border-color .15s}}
+</style>
+
+</head>
+<body>
+<style>
+/* 단독 앱 추가 스타일: 로그인, 전체화면 카메라 */
+.login{max-width:420px;margin:8vh auto 0;display:grid;gap:14px}
+.login h1{font-size:22px;margin:0}
+.err{color:var(--ng);font-size:13px;min-height:1em}
+.who{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.who button{min-height:32px;padding:0 10px;font-size:12px;white-space:nowrap}
+header.top h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-size:17px}
+@media (max-width:480px){.who .mono{display:none}}
+.slot .shot.err{outline:2px solid var(--ng);outline-offset:-2px}
+.camwrap{position:fixed;inset:0;z-index:40;background:#000;display:grid;grid-template-rows:auto 1fr auto;color:#fff}
+.camtop{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));background:rgba(0,0,0,.55)}
+.camtop b{font-size:18px}
+.camtop .sub{font-size:12px;color:#c9d2dc}
+.camstage{position:relative;min-height:0;display:grid;place-items:center;overflow:hidden}
+.camstage video,.camstage img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
+.camstage .msg{position:absolute;inset:auto 16px 16px;background:rgba(0,0,0,.7);padding:10px 12px;border-radius:8px;font-size:14px;text-align:center}
+.cambar{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));background:rgba(0,0,0,.55)}
+.shutter{width:76px;height:76px;border-radius:50%;border:5px solid #fff;background:#fff;box-shadow:inset 0 0 0 4px #000}
+.shutter:active{transform:scale(.94)}
+.shutter:disabled{opacity:.4}
+.cambtn{min-height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-weight:700;padding:0 14px}
+.review{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:14px max(14px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px));background:rgba(0,0,0,.55)}
+.review button{min-height:60px;border-radius:10px;border:0;font-weight:800;font-size:17px}
+.review .rt{background:#3a4552;color:#fff}
+.review .ng{background:#d93636;color:#fff}
+.review .ok{background:#1f9a5f;color:#fff}
+.review button:disabled{opacity:.5}
+/* 탭을 화면 위에 고정 (아래쪽은 Netlify 막대 등에 가려질 수 있음) */
+nav.tabs{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--line);z-index:8;padding-top:env(safe-area-inset-top,0px);padding-bottom:0}
+nav.tabs a{grid-auto-flow:column;align-items:center;justify-content:center;gap:6px;padding:12px 0;font-size:14px;border-bottom:3px solid transparent}
+nav.tabs a[aria-current="page"]{border-bottom-color:var(--accent)}
+header.top{position:static}
+body{padding-bottom:calc(110px + env(safe-area-inset-bottom,0px))}
+.sticky-save{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.toast{bottom:calc(180px + env(safe-area-inset-bottom,0px))}
+</style>
+
+<!-- 설정 없음 -->
+<div class="wrap" id="v-setup" hidden>
+  <div class="login panel">
+    <h1>Firebase 설정이 필요합니다</h1>
+    <div class="progress">이 파일의 <code>FIREBASE_CONFIG</code> 자리에 Firebase 웹 앱 설정값이 아직 들어가지 않았습니다. 설정값을 받아 넣은 파일로 다시 올려 주세요.</div>
+  </div>
+</div>
+
+<!-- 로그인 -->
+<div class="wrap" id="v-login" hidden>
+  <form class="login panel" id="loginForm">
+    <h1>용접 파괴검사 체크시트</h1>
+    <div class="progress">관리자가 만들어 준 아이디와 비밀번호로 로그인하세요. 한 번 로그인하면 이 휴대폰에서는 다시 입력하지 않아도 됩니다.</div>
+    <label class="field"><span class="label">아이디</span><input id="lg-email" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="예: kim" required></label>
+    <label class="field"><span class="label">비밀번호</span><input id="lg-pw" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="lg-err"></div>
+    <button class="btn primary" type="submit" id="lg-btn">로그인</button>
+  </form>
+</div>
+
+<!-- 앱 -->
+<div id="v-app" hidden>
+<nav class="tabs" aria-label="화면 전환">
+  <a href="#new" data-v="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>검사 입력</a>
+  <a href="#sheet" data-v="sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 10h18M3 15h18M9 4v16"/></svg>체크시트</a>
+  <a href="#parts" data-v="parts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>품번 관리</a>
+</nav>
+<div class="wrap">
+  <header class="top">
+    <h1>용접 파괴검사 체크시트</h1>
+    <div class="who"><span class="mono" id="clock"></span><button class="btn" id="logout" type="button">로그아웃</button></div>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+
+  <section class="view" id="v-new">
+    <div class="panel">
+      <div class="fields">
+        <label class="field"><span class="label">작업반</span>
+          <select id="f-line"></select></label>
+        <label class="field"><span class="label">품번</span><select id="f-part"></select></label>
+        <label class="field"><span class="label">검사자</span><input id="f-inspector" placeholder="이름" autocomplete="name"></label>
+        <div class="field"><span class="label">검사일시 (서버 시각)</span><div class="mono" id="f-when" style="min-height:44px;display:flex;align-items:center"></div></div>
+      </div>
+      <div class="method"><b>검사방법</b> · 측정할 제품을 고정하고 망치와 정으로 용접부를 직접 타격하여 파괴검사 실시 (용접부가 모재를 물고 떨어질 것)</div>
+    </div>
+
+    <button class="btn primary" id="startCam" type="button" style="min-height:56px;font-size:16px">카메라 켜고 순서대로 촬영</button>
+
+    <div class="row" style="justify-content:space-between">
+      <div style="display:grid;gap:2px"><div class="progress" id="progress"></div><div class="progress" id="draftNote" style="color:var(--ok)"></div></div>
+      <button class="btn small" id="allOk" type="button">찍은 항목 모두 OK</button>
+    </div>
+    <div class="help" id="status" role="alert" hidden></div>
+    <div class="slots" id="slots"></div>
+
+    <div class="sticky-save">
+      <div class="progress" id="saveHint"></div>
+      <div class="row">
+        <button class="btn small" id="resetBtn" type="button">새로 작성</button>
+        <button class="btn primary" id="saveBtn" type="button" disabled>검사 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="v-sheet" hidden>
+    <div class="panel">
+      <div class="fields">
+        <label class="field"><span class="label">작업반</span>
+          <select id="s-line"><option value="">전체</option></select></label>
+        <label class="field"><span class="label">월</span><input type="month" id="s-month"></label>
+        <label class="field"><span class="label">주차</span>
+          <select id="s-week"><option value="">전체</option><option value="1">1주차</option><option value="2">2주차</option><option value="3">3주차</option><option value="4">4주차</option><option value="5">5주차</option><option value="6">6주차</option></select></label>
+        <label class="field"><span class="label">품번</span><select id="s-part"><option value="">전체</option></select></label>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <div class="summary" id="sumBox"></div>
+        <button class="btn small" id="xlsxBtn" type="button">엑셀로 내보내기</button>
+      </div>
+    </div>
+    <div class="scroller" id="sheetBox"></div>
+  </section>
+
+  <section class="view" id="v-parts" hidden>
+    <div class="panel">
+      <h2>품번별 용접부 개수</h2>
+      <div class="progress" id="partsNote">품번마다 용접부 수를 정해 두면 검사 입력에서 그 수만큼 촬영 칸이 생깁니다.</div>
+      <div class="plist" id="plist"></div>
+    </div>
+    <div class="panel" id="driveAdmin" hidden>
+      <h2>사진 저장 위치 (구글 드라이브)</h2>
+      <div class="progress" id="d-state"></div>
+      <label class="field"><span class="label">드라이브 연결 주소 (Apps Script 웹 앱 URL)</span><input id="d-url" class="mono" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="none" spellcheck="false"></label>
+      <div class="row"><button class="btn" id="d-test" type="button">연결 테스트</button><button class="btn primary" id="d-save" type="button">저장</button></div>
+      <div class="progress" id="d-msg"></div>
+    </div>
+    <div class="panel" id="lineAdmin" hidden>
+      <h2>작업반 관리</h2>
+      <div class="progress">여기서 추가한 작업반이 검사 입력과 체크시트의 작업반 목록에 나타납니다. 삭제해도 지난 검사 기록은 그대로 남습니다.</div>
+      <div class="plist" id="llist"></div>
+      <div class="fields">
+        <label class="field"><span class="label">새 작업반 이름</span><input id="l-new" placeholder="예: 용접4반" maxlength="20"></label>
+      </div>
+      <div class="row"><button class="btn primary" id="l-add" type="button">작업반 추가</button></div>
+    </div>
+    <div class="panel" id="partAdd">
+      <h2>품번 추가</h2>
+      <div class="fields">
+        <label class="field"><span class="label">품번</span><input id="p-new" placeholder="예: 88415-MX560" class="mono"></label>
+        <label class="field"><span class="label">용접부 개수</span><input id="p-n" type="number" min="1" max="20" value="9" inputmode="numeric"></label>
+      </div>
+      <div class="row"><button class="btn primary" id="p-add" type="button">추가</button></div>
+    </div>
+  </section>
+</div>
+
+
+</div>
+
+<!-- 카메라 -->
+<div class="camwrap" id="cam" hidden>
+  <div class="camtop"><div><b id="camLabel"></b><div class="sub" id="camSub"></div></div><button class="cambtn" id="camClose" type="button">닫기</button></div>
+  <div class="camstage">
+    <video id="camVideo" playsinline muted autoplay></video>
+    <img id="camShot" alt="촬영한 사진" hidden>
+    <div class="msg" id="camMsg" hidden></div>
+  </div>
+  <div class="cambar" id="camLive"><span></span><button class="shutter" id="shutter" type="button" aria-label="촬영"></button><span></span></div>
+  <div class="review" id="camReview" hidden>
+    <button class="rt" id="camRetake" type="button">다시 찍기</button>
+    <button class="ng" id="camNg" type="button">NG 저장</button>
+    <button class="ok" id="camOk" type="button">OK 저장</button>
+  </div>
+</div>
+<input type="file" accept="image/*" capture="environment" id="fallbackInput" hidden>
+
+<div class="lb" id="lb" hidden>
+  <img id="lbImg" alt="">
+  <div class="cap"><span id="lbCap"></span><button class="btn small" id="lbClose" type="button">닫기</button></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script type="module">
+/* =========================================================
+   설정: Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹) 의 firebaseConfig 를 아래에 붙여넣기
+   ========================================================= */
+const FIREBASE_CONFIG = {apiKey:"AIzaSyDMoDEvSQJFFDxL0UHaXZZZ-7n0qVD27OQ",authDomain:"daon-11430.firebaseapp.com",projectId:"daon-11430",storageBucket:"daon-11430.firebasestorage.app",messagingSenderId:"1030280422976",appId:"1:1030280422976:web:4a4ac2af99a435bd8da1a5"};
+/* 관리자 이메일 (품번 관리·기록 삭제 가능). Firestore 보안 규칙의 목록과 똑같이 맞출 것 */
+const ADMIN_EMAILS = ["swkim7777777@gmail.com"];
+/* 아이디 로그인: '@' 없이 입력하면 뒤에 이 도메인을 붙여 Firebase 계정(아이디@daon.local)으로 로그인 */
+const ID_DOMAIN = "daon.local";
+const toLoginEmail=v=>{v=v.trim().toLowerCase();return v.includes("@")?v:`${v}@${ID_DOMAIN}`};
+const LINES_DEFAULT = ["용접1반","용접2반","용접3반"];
+
+const $=s=>document.querySelector(s);
+const circled=i=>String.fromCharCode(0x2460+i);
+const pad=n=>String(n).padStart(2,"0");
+const fmtDate=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtTime=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+const weekOfMonth=d=>{const f=new Date(d.getFullYear(),d.getMonth(),1);return Math.ceil((d.getDate()+((f.getDay()+6)%7))/7)};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2800)}
+function setStatus(t){const el=$("#status");el.textContent=t||"";el.hidden=!t}
+function show(id){["#v-setup","#v-login","#v-app"].forEach(x=>$(x).hidden=x!==id)}
+
+/* ---------------- 데이터 계층 (Firebase) ---------------- */
+async function firebaseApi(cfg){
+  const V="10.12.2",B=`https://www.gstatic.com/firebasejs/${V}/`;
+  const [{initializeApp},A,F]=await Promise.all([import(B+"firebase-app.js"),import(B+"firebase-auth.js"),import(B+"firebase-firestore.js")]);
+  const app=initializeApp(cfg),auth=A.getAuth(app),db=F.getFirestore(app);
+  return {
+    onAuth:cb=>A.onAuthStateChanged(auth,cb),
+    login:(e,p)=>A.signInWithEmailAndPassword(auth,e,p),
+    idToken:()=>auth.currentUser?auth.currentUser.getIdToken():Promise.resolve(null),
+    watchDrive:(cb,err)=>F.onSnapshot(F.doc(db,"settings","drive"),s=>cb(s.exists()?(s.data().url||""):""),err),
+    setDrive:url=>F.setDoc(F.doc(db,"settings","drive"),{url}),
+    logout:()=>A.signOut(auth),
+    /* 서버 시각과 휴대폰 시각의 차이(ms) */
+    async serverOffset(uid){const r=F.doc(db,"clock",uid);const t0=Date.now();await F.setDoc(r,{t:F.serverTimestamp()});const s=await F.getDoc(r,);const t1=Date.now();const st=s.data().t;return st?st.toMillis()-(t0+t1)/2:0},
+    watchLines:(cb,err)=>F.onSnapshot(F.doc(db,"settings","lines"),s=>cb(s.exists()?(s.data().list||[]):null),err),
+    setLines:list=>F.setDoc(F.doc(db,"settings","lines"),{list}),
+    watchParts:(cb,err)=>F.onSnapshot(F.collection(db,"parts"),s=>cb(s.docs.map(d=>d.data())),err),
+    setPart:p=>F.setDoc(F.doc(db,"parts",p.partNo),p),
+    delPart:no=>F.deleteDoc(F.doc(db,"parts",no)),
+    watchMonth:(month,cb,err)=>F.onSnapshot(F.query(F.collection(db,"inspections"),F.where("month","==",month)),s=>cb(s.docs.map(d=>{const x=d.data();x.id=d.id;x.createdAtMs=x.createdAt?x.createdAt.toMillis():x.clientAt;return x})),err),
+    async addPhoto(uid,bytes,meta){const r=F.doc(F.collection(db,"photos"));await F.setDoc(r,Object.assign({},meta,{by:uid,...(bytes?{data:F.Bytes.fromUint8Array(bytes)}:{}),createdAt:F.serverTimestamp()}));return r.id},
+    async getPhoto(id){const s=await F.getDoc(F.doc(db,"photos",id));if(!s.exists()||!s.data().data)return null;return s.data().data.toUint8Array()},
+    saveInspection:rec=>F.setDoc(F.doc(db,"inspections",rec.id),Object.assign({},rec,{createdAt:F.serverTimestamp()})),
+    delInspection:id=>F.deleteDoc(F.doc(db,"inspections",id)),
+    getDraft:async uid=>{const s=await F.getDoc(F.doc(db,"drafts",uid));return s.exists()?s.data():null},
+    setDraft:(uid,d)=>F.setDoc(F.doc(db,"drafts",uid),d),
+    newId:()=>F.doc(F.collection(db,"inspections")).id,
+    errText:e=>{const c=e&&e.code||"";return({"auth/invalid-credential":"아이디 또는 비밀번호가 맞지 않습니다","auth/invalid-email":"아이디는 영문·숫자로 입력하세요","auth/too-many-requests":"시도가 너무 많습니다. 잠시 후 다시 해 주세요","auth/network-request-failed":"인터넷 연결을 확인해 주세요","permission-denied":"권한이 없습니다 (보안 규칙 확인)","unavailable":"서버에 연결할 수 없습니다. 인터넷 연결을 확인해 주세요"})[c]||(c||String(e&&e.message||e))}
+  };
+}
+
+/* ---------------- 상태 ---------------- */
+const st={driveUrl:"",lines:LINES_DEFAULT.slice(),api:null,user:null,admin:false,offset:0,parts:[],insp:[],unsubMonth:null,month:""};
+const now=()=>new Date(Date.now()+st.offset);
+const draft={id:null,slots:{},busy:{}};
+function newDraft(){draft.id=st.api.newId();draft.slots={};draft.busy={}}
+function curPart(){return st.parts.find(p=>p.partNo===$("#f-part").value)}
+function slotKeys(){const p=curPart();return p?["all"].concat(Array.from({length:p.welds},(_,i)=>"w"+(i+1))):[]}
+function slotName(k){return k==="all"?"전체 사진":"용접부 "+circled(+k.slice(1)-1)}
+
+/* ---------------- 시작 ---------------- */
+async function start(){
+  const d=new Date();$("#s-month").value=fmtDate(d).slice(0,7);$("#s-week").value=String(weekOfMonth(d));
+  const ins=ls.get("wc.inspector");if(ins)$("#f-inspector").value=ins;
+  renderLineSelects();
+  try{st.api=window.__MOCK_API?await window.__MOCK_API():(FIREBASE_CONFIG?await firebaseApi(FIREBASE_CONFIG):null)}
+  catch(e){show("#v-setup");$("#v-setup .progress").textContent="Firebase를 불러오지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요. ("+(e.message||e)+")";return}
+  if(!st.api){show("#v-setup");return}
+  st.api.onAuth(onUser);
+  setInterval(tick,1000);tick();route();
+}
+async function onUser(u){
+  st.user=u;
+  if(!u){show("#v-login");return}
+  st.admin=ADMIN_EMAILS.includes((u.email||"").toLowerCase());
+  if(!$("#f-inspector").value)$("#f-inspector").value=u.displayName||(u.email||"").split("@")[0];
+  show("#v-app");newDraft();renderAll();
+  try{st.offset=await st.api.serverOffset(u.uid);if(Math.abs(st.offset)>120000)showBanner(`이 휴대폰 시계가 서버와 ${Math.round(st.offset/60000)}분 차이 납니다. 워터마크와 기록은 서버 시각으로 남습니다.`)}catch(e){showBanner("서버 시각을 확인하지 못했습니다: "+st.api.errText(e))}
+  st.api.watchDrive(url=>{st.driveUrl=url;renderDrive()},()=>{});
+  st.api.watchLines(list=>{st.lines=(list&&list.length)?list:LINES_DEFAULT.slice();renderLineSelects();renderLines()},()=>{});
+  st.api.watchParts(list=>{const np=list.sort((a,b)=>a.partNo.localeCompare(b.partNo));if(JSON.stringify(np)===JSON.stringify(st.parts))return;const before=(curPart()||{}).welds;st.parts=np;renderParts();renderPartSelects();if((curPart()||{}).welds!==before)renderSlots()},e=>showBanner("품번을 불러오지 못했습니다: "+st.api.errText(e)));
+  watchMonth();
+  try{const d=await st.api.getDraft(u.uid);if(d&&d.slots&&Object.keys(d.slots).length){draft.id=d.id||draft.id;draft.slots=d.slots;if(d.part){wantPart=d.part}if(d.line){wantLine=d.line;renderLineSelects()}renderPartSelects();renderSlots();toast("작성 중이던 검사를 불러왔습니다")}}catch(e){}
+}
+function showBanner(t){const b=$("#banner");b.textContent=t;b.hidden=false}
+function tick(){const d=now();$("#clock").textContent=`${fmtDate(d)} ${fmtTime(d).slice(0,5)}`;$("#f-when").textContent=`${fmtDate(d)} ${fmtTime(d)} · ${d.getMonth()+1}월 ${weekOfMonth(d)}주차`}
+
+$("#loginForm").addEventListener("submit",async e=>{e.preventDefault();$("#lg-err").textContent="";$("#lg-btn").disabled=true;
+  try{await st.api.login(toLoginEmail($("#lg-email").value),$("#lg-pw").value)}catch(err){$("#lg-err").textContent=st.api.errText(err)}$("#lg-btn").disabled=false});
+$("#logout").addEventListener("click",()=>{stopCam();st.api.logout()});
+
+/* ---------------- 구글 드라이브 사진 저장 ---------------- */
+const b64enc=u8=>{let s="";for(let i=0;i<u8.length;i+=0x8000)s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));return btoa(s)};
+const b64dec=b=>{const s=atob(b),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u};
+async function sha256hex(u8){try{const h=await crypto.subtle.digest("SHA-256",u8);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return""}}
+async function driveCall(action,body,url){
+  const target=url||st.driveUrl;if(!target)throw new Error("드라이브 연결 주소가 없습니다");
+  const idToken=await st.api.idToken();
+  const res=await fetch(target,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({},body,{action,idToken}))});
+  let j;try{j=await res.json()}catch(e){throw new Error("드라이브 응답을 읽지 못했습니다 (연결 주소·배포 설정 확인)")}
+  if(!j.ok)throw new Error(j.error||"드라이브 오류");return j;
+}
+/* 사진 원본 가져오기: 드라이브 → (예전 기록) Firebase */
+async function photoBytes(s){
+  if(s.driveId){const j=await driveCall("get",{id:s.driveId});return b64dec(j.data)}
+  if(s.photoId)return await st.api.getPhoto(s.photoId);
+  return null;
+}
+function renderDrive(){
+  const box=$("#driveAdmin");if(!box)return;box.hidden=!st.admin;
+  const inp=$("#d-url");if(document.activeElement!==inp)inp.value=st.driveUrl||"";
+  $("#d-state").innerHTML=st.driveUrl?`<span class="pill ok">연결됨</span> 새 사진은 구글 드라이브 "파괴검사 사진" 폴더에 저장됩니다.`:`<span class="pill warn">미연결</span> 지금은 사진을 Firebase 데이터베이스에 저장합니다.`;
+}
+document.addEventListener("click",async e=>{
+  if(e.target.id==="d-test"){
+    const url=$("#d-url").value.trim();if(!url){toast("연결 주소를 붙여넣으세요");return}
+    e.target.disabled=true;e.target.textContent="확인 중…";
+    try{const j=await driveCall("ping",{},url);$("#d-msg").innerHTML=`연결 성공 · 드라이브 계정 확인됨. <a href="${esc(j.folder)}" target="_blank" rel="noopener">사진 폴더 열기</a>`}
+    catch(err){$("#d-msg").textContent="연결 실패: "+(err.message||err)}
+    e.target.disabled=false;e.target.textContent="연결 테스트";
+  }
+  if(e.target.id==="d-save"){
+    const url=$("#d-url").value.trim();
+    if(url&&!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){toast("주소는 https://script.google.com/macros/s/…/exec 형식이어야 합니다");return}
+    try{await st.api.setDrive(url);toast(url?"드라이브 연결을 저장했습니다":"드라이브 연결을 해제했습니다")}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}
+  }
+});
+
+/* ---------------- 작업반 ---------------- */
+let wantLine=null;
+function renderLineSelects(){
+  const f=$("#f-line"),prev=wantLine||f.value||ls.get("wc.line")||"";
+  f.innerHTML=st.lines.map(l=>`<option>${esc(l)}</option>`).join("");
+  if(st.lines.includes(prev)){f.value=prev;wantLine=null}
+  const sl=$("#s-line"),pv=sl.value;
+  sl.innerHTML=`<option value="">전체</option>`+st.lines.map(l=>`<option>${esc(l)}</option>`).join("");
+  sl.value=st.lines.includes(pv)?pv:"";
+}
+function renderLines(){
+  $("#lineAdmin").hidden=!st.admin;
+  $("#llist").innerHTML=st.lines.map(l=>`<div class="pitem"><span>${esc(l)}</span><button class="btn small danger" type="button" data-rmline="${esc(l)}">삭제</button></div>`).join("");
+}
+$("#llist").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-rmline]");if(!b||!st.admin)return;
+  if(st.lines.length<=1){toast("작업반은 하나 이상 있어야 합니다");return}
+  if(b.textContent!=="확인"){b.textContent="확인";setTimeout(()=>b.textContent="삭제",3000);return}
+  try{await st.api.setLines(st.lines.filter(x=>x!==b.dataset.rmline));toast(`${b.dataset.rmline} 삭제 (지난 기록은 그대로 남습니다)`)}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}
+});
+$("#l-add").addEventListener("click",async()=>{
+  const name=$("#l-new").value.trim().replace(/\s+/g," ");
+  if(!name){toast("작업반 이름을 입력하세요");return}
+  if(name.length>20){toast("작업반 이름은 20자 이내로 입력하세요");return}
+  if(st.lines.includes(name)){toast("이미 있는 작업반입니다");return}
+  try{await st.api.setLines(st.lines.concat(name));$("#l-new").value="";toast(`${name} 추가`)}catch(e){toast("추가하지 못했습니다: "+st.api.errText(e))}
+});
+
+/* ---------------- 품번 선택 / 촬영 칸 ---------------- */
+let wantPart=null;
+function renderPartSelects(){
+  const sel=$("#f-part"),prev=wantPart||sel.value||ls.get("wc.part")||"";
+  sel.innerHTML=st.parts.length?st.parts.map(p=>`<option value="${esc(p.partNo)}">${esc(p.partNo)} · 용접부 ${p.welds}개</option>`).join(""):`<option value="">품번이 아직 없습니다</option>`;
+  if(st.parts.some(p=>p.partNo===prev)){sel.value=prev;wantPart=null}
+  const s2=$("#s-part"),pv=s2.value;s2.innerHTML=`<option value="">전체</option>`+st.parts.map(p=>`<option>${esc(p.partNo)}</option>`).join("");s2.value=pv;
+}
+const camIcon=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+function renderSlots(){
+  const keys=slotKeys(),box=$("#slots");
+  if(!keys.length){box.innerHTML=`<div class="panel empty" style="grid-column:1/-1">등록된 품번이 없습니다. ${st.admin?"<b>품번 관리</b> 탭에서 추가하세요.":"관리자에게 품번 등록을 요청하세요."}</div>`;updateProgress();return}
+  box.innerHTML=keys.map(k=>{
+    const s=draft.slots[k],busy=draft.busy[k],v=s&&s.verdict||"";
+    return `<div class="slot ${v==="OK"?"done":""} ${v==="NG"?"ng":""}">
+      <div class="head"><span>${slotName(k)}</span>${busy?`<span class="tag">저장 중</span>`:""}</div>
+      <button type="button" class="shot" data-shoot="${k}" aria-label="${slotName(k)} 촬영">${s?`<img src="${s.thumb}" alt="${slotName(k)} 사진">`:`<span class="cam">${camIcon}눌러서 촬영</span>`}</button>
+      <div class="retake"><span class="mono">${s?esc(s.time):""}</span><span>${s?"눌러서 다시 찍기":""}</span></div>
+      <div class="verdict"><button type="button" class="ok" data-k="${k}" data-v="OK" aria-pressed="${v==="OK"}" ${s?"":"disabled"}>OK</button><button type="button" class="ng" data-k="${k}" data-v="NG" aria-pressed="${v==="NG"}" ${s?"":"disabled"}>NG</button></div>
+    </div>`}).join("");
+  updateProgress();
+}
+function updateProgress(){
+  const keys=slotKeys(),shot=keys.filter(k=>draft.slots[k]).length,judged=keys.filter(k=>draft.slots[k]&&draft.slots[k].verdict).length,ng=keys.filter(k=>draft.slots[k]&&draft.slots[k].verdict==="NG").length;
+  $("#progress").innerHTML=keys.length?`촬영 <b class="mono">${shot}/${keys.length}</b> · 판정 <b class="mono">${judged}/${keys.length}</b>${ng?` · <span class="pill ng">NG ${ng}</span>`:""}`:"";
+  $("#draftNote").textContent=shot?`작성 중 ${shot}장 · 자동 임시저장됨`:"";
+  const name=$("#f-inspector").value.trim(),busy=Object.values(draft.busy).some(Boolean);
+  $("#saveBtn").disabled=!(keys.length&&judged===keys.length&&!busy&&name);
+  $("#saveHint").textContent=!keys.length?"":!name?"검사자 이름을 입력하세요":busy?"사진 저장 중…":judged<keys.length?`남은 항목 ${keys.length-judged}개`:"저장할 준비가 됐습니다";
+  $("#startCam").textContent=shot&&shot<keys.length?`이어서 촬영 (${slotName(keys.find(k=>!draft.slots[k]))}부터)`:shot===keys.length&&keys.length?"모든 칸 촬영 완료":"카메라 켜고 순서대로 촬영";
+  $("#startCam").disabled=!keys.length||(shot===keys.length);
+}
+let draftT=null;
+function persistDraft(){clearTimeout(draftT);draftT=setTimeout(()=>{if(!st.user)return;st.api.setDraft(st.user.uid,{id:draft.id,part:$("#f-part").value,line:$("#f-line").value,slots:draft.slots,updatedAt:Date.now()}).catch(()=>{})},500)}
+function clearDraft(){clearTimeout(draftT);if(st.user)st.api.setDraft(st.user.uid,{slots:{},updatedAt:Date.now()}).catch(()=>{})}
+
+$("#slots").addEventListener("click",e=>{
+  const v=e.target.closest(".verdict button");
+  if(v){const s=draft.slots[v.dataset.k];if(!s)return;s.verdict=s.verdict===v.dataset.v?"":v.dataset.v;renderSlots();persistDraft();return}
+  const b=e.target.closest("[data-shoot]");if(b)openCam(b.dataset.shoot,true);
+});
+$("#allOk").addEventListener("click",()=>{let n=0;slotKeys().forEach(k=>{const s=draft.slots[k];if(s&&!s.verdict){s.verdict="OK";n++}});renderSlots();persistDraft();toast(n?`${n}개 항목을 OK로 표시했습니다`:"OK로 바꿀 항목이 없습니다")});
+$("#f-part").addEventListener("change",()=>{ls.set("wc.part",$("#f-part").value);if(Object.keys(draft.slots).length){newDraft();clearDraft();toast("품번이 바뀌어 촬영 내용을 비웠습니다")}renderSlots()});
+$("#f-inspector").addEventListener("input",()=>{ls.set("wc.inspector",$("#f-inspector").value);updateProgress()});
+$("#f-line").addEventListener("change",()=>{ls.set("wc.line",$("#f-line").value);persistDraft()});
+$("#startCam").addEventListener("click",()=>{const k=slotKeys().find(x=>!draft.slots[x]);if(k)openCam(k,false)});
+let resetArm=0;
+$("#resetBtn").addEventListener("click",e=>{if(!Object.keys(draft.slots).length)return;if(Date.now()-resetArm>3000){resetArm=Date.now();e.target.textContent="한 번 더 누르면 비움";setTimeout(()=>e.target.textContent="새로 작성",3000);return}newDraft();clearDraft();e.target.textContent="새로 작성";renderSlots()});
+
+/* ---------------- 카메라 (페이지 안에서 직접) ---------------- */
+const cam={stream:null,key:null,single:false,shot:null,wake:null};
+async function ensureStream(){
+  if(cam.stream&&cam.stream.active)return cam.stream;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("nocam");
+  cam.stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1440}}});
+  const v=$("#camVideo");v.srcObject=cam.stream;await v.play().catch(()=>{});
+  try{cam.wake=await navigator.wakeLock.request("screen")}catch(e){}
+  return cam.stream;
+}
+function stopCam(){if(cam.stream){cam.stream.getTracks().forEach(t=>t.stop());cam.stream=null}$("#camVideo").srcObject=null;if(cam.wake){cam.wake.release().catch(()=>{});cam.wake=null}$("#cam").hidden=true;history.replaceState(null,"",location.pathname+location.search+"#new")}
+async function openCam(k,single){
+  if(!curPart())return;
+  cam.key=k;cam.single=single;cam.shot=null;
+  $("#cam").hidden=false;liveMode();labelCam();
+  try{await ensureStream();$("#camMsg").hidden=true}
+  catch(e){
+    stopCam();
+    const denied=e&&(e.name==="NotAllowedError"||e.name==="SecurityError");
+    setStatus(denied?"카메라 권한이 막혀 있습니다. 주소창 왼쪽 자물쇠(또는 브라우저 설정) > 권한 > 카메라를 '허용'으로 바꾼 뒤 새로고침하세요.":"이 브라우저에서는 페이지 안 카메라를 쓸 수 없어 휴대폰 카메라 앱으로 찍습니다.");
+    if(!denied){pendingFallback=k;$("#fallbackInput").click()}
+  }
+}
+function labelCam(){const keys=slotKeys(),i=keys.indexOf(cam.key);$("#camLabel").textContent=`${slotName(cam.key)}`;$("#camSub").textContent=`${curPart().partNo} · ${i+1}/${keys.length}번째 · ${$("#f-line").value}`}
+function liveMode(){$("#camVideo").hidden=false;$("#camShot").hidden=true;$("#camLive").hidden=false;$("#camReview").hidden=true;$("#shutter").disabled=false}
+function reviewMode(url){$("#camShot").src=url;$("#camShot").hidden=false;$("#camVideo").hidden=true;$("#camLive").hidden=true;$("#camReview").hidden=false;["#camRetake","#camNg","#camOk"].forEach(s=>$(s).disabled=false)}
+$("#camClose").addEventListener("click",stopCam);
+window.addEventListener("hashchange",()=>{if(!$("#cam").hidden&&location.hash!=="#new")stopCam()});
+$("#shutter").addEventListener("click",async()=>{
+  const v=$("#camVideo");if(!v.videoWidth){$("#camMsg").textContent="카메라 준비 중입니다. 잠시 후 다시 누르세요.";$("#camMsg").hidden=false;return}
+  $("#shutter").disabled=true;
+  const at=now();
+  cam.shot=await makeImages(v,v.videoWidth,v.videoHeight,cam.key,at);
+  cam.shot.at=at;reviewMode(cam.shot.previewUrl);
+});
+$("#camRetake").addEventListener("click",()=>{if(cam.shot)URL.revokeObjectURL(cam.shot.previewUrl);cam.shot=null;liveMode()});
+$("#camOk").addEventListener("click",()=>commitShot("OK"));
+$("#camNg").addEventListener("click",()=>commitShot("NG"));
+async function commitShot(verdict){
+  const sh=cam.shot,k=cam.key;if(!sh)return;
+  ["#camRetake","#camNg","#camOk"].forEach(s=>$(s).disabled=true);
+  URL.revokeObjectURL(sh.previewUrl);cam.shot=null;
+  // 다음 칸으로 바로 넘어가고 저장은 뒤에서 진행
+  const keys=slotKeys(),next=cam.single?null:keys.slice(keys.indexOf(k)+1).find(x=>!draft.slots[x]);
+  savePhoto(k,sh,verdict);
+  if(next){cam.key=next;labelCam();liveMode()}else{stopCam();if(slotKeys().every(x=>draft.slots[x]||draft.busy[x]))toast("모든 칸 촬영을 마쳤습니다. 확인 후 검사 저장을 누르세요.")}
+}
+async function savePhoto(k,sh,verdict,meta){
+  const p=curPart();
+  draft.busy[k]=true;
+  draft.slots[k]={thumb:sh.thumb,verdict,time:fmtTime(sh.at),shotAt:sh.at.getTime(),pending:true,src:meta&&meta.src||"camera"};
+  renderSlots();setStatus("");
+  for(let attempt=0;attempt<3;attempt++){
+    try{
+      const info={inspId:draft.id,slot:k,partNo:p.partNo,line:$("#f-line").value,shotAt:sh.at.getTime(),src:meta&&meta.src||"camera"};
+      let driveId=null,sha="";
+      if(st.driveUrl){
+        sha=await sha256hex(sh.bytes);
+        const ym=fmtDate(sh.at).slice(0,7),name=`${fmtDate(sh.at)}_${fmtTime(sh.at).replace(/:/g,"")}_${p.partNo}_${slotName(k).replace(/\s/g,"")}`;
+        const j=await driveCall("upload",{data:b64enc(sh.bytes),path:[ym,$("#f-line").value,p.partNo],name,meta:Object.assign({sha256:sha},info)});
+        driveId=j.id;
+      }
+      const id=await st.api.addPhoto(st.user.uid,driveId?null:sh.bytes,Object.assign(info,driveId?{driveId,sha256:sha,size:sh.bytes.length}:{}));
+      const s=draft.slots[k];if(s){s.photoId=id;if(driveId){s.driveId=driveId;s.sha256=sha}delete s.pending}
+      draft.busy[k]=false;renderSlots();persistDraft();return;
+    }catch(e){if(attempt===2){draft.busy[k]=false;delete draft.slots[k];renderSlots();setStatus(`${slotName(k)} 사진을 저장하지 못했습니다 (${e&&e.code?st.api.errText(e):(e&&e.message||e)}). 그 칸을 눌러 다시 찍어 주세요.`)}else await new Promise(r=>setTimeout(r,1500))}
+  }
+}
+/* 워터마크 넣은 원본(1280px)과 미리보기(240px) 만들기 */
+async function makeImages(src,W0,H0,k,at){
+  const scale=Math.min(1,1280/Math.max(W0,H0)),W=Math.round(W0*scale),H=Math.round(H0*scale);
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");g.drawImage(src,0,0,W,H);
+  const p=curPart(),insp=$("#f-inspector").value.trim()||"검사자 미입력";
+  const lines=[`${$("#f-line").value} · ${p.partNo} · ${slotName(k)}`,`${fmtDate(at)} ${fmtTime(at)} (서버시각) · 검사자 ${insp} · 파괴검사`];
+  const fs=Math.max(14,Math.round(Math.min(W,H)*0.042)),lh=fs*1.35,px=fs*0.8,bh=lh*lines.length+fs*0.9;
+  g.fillStyle="rgba(0,0,0,0.58)";g.fillRect(0,H-bh,W,bh);g.fillStyle="#ffd34d";g.fillRect(0,H-bh,Math.max(4,fs*0.25),bh);g.textBaseline="top";
+  lines.forEach((t,i)=>{g.font=`${i?500:700} ${i?Math.round(fs*0.86):fs}px "IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif`;g.fillStyle=i?"#e8edf2":"#fff";g.fillText(t,px,H-bh+fs*0.45+i*lh,W-px*2)});
+  let q=0.8,blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",q));
+  while(blob&&blob.size>850000&&q>0.4){q-=0.15;blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",q))}
+  const tw=240,th=Math.round(H*tw/W),tc=document.createElement("canvas");tc.width=tw;tc.height=th;tc.getContext("2d").drawImage(cv,0,0,tw,th);
+  const thumb=tc.toDataURL("image/jpeg",0.7);
+  cv.width=cv.height=0;tc.width=tc.height=0;
+  return {bytes:new Uint8Array(await blob.arrayBuffer()),thumb,previewUrl:URL.createObjectURL(blob)};
+}
+/* 페이지 안 카메라를 못 쓰는 경우의 대체 경로 (기록에 '카메라 앱'으로 남음) */
+let pendingFallback=null;
+$("#fallbackInput").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0],k=pendingFallback;e.target.value="";if(!f||!k)return;
+  try{const bmp=await createImageBitmap(f,{imageOrientation:"from-image",resizeWidth:1280,resizeQuality:"medium"}).catch(()=>createImageBitmap(f));
+    const at=now(),sh=await makeImages(bmp,bmp.width,bmp.height,k,at);sh.at=at;if(bmp.close)bmp.close();URL.revokeObjectURL(sh.previewUrl);savePhoto(k,sh,"",{src:"camera-app"})}
+  catch(err){setStatus("사진을 처리하지 못했습니다. 다시 시도해 주세요.")}
+});
+
+/* ---------------- 검사 저장 ---------------- */
+$("#saveBtn").addEventListener("click",async()=>{
+  const p=curPart();if(!p)return;const at=now(),keys=slotKeys(),slots={};
+  keys.forEach(k=>{const s=draft.slots[k];slots[k]={photoId:s.photoId,...(s.driveId?{driveId:s.driveId,sha256:s.sha256||""}:{}),thumb:s.thumb,verdict:s.verdict,time:s.time,shotAt:s.shotAt,src:s.src||"camera"}});
+  const ng=keys.some(k=>slots[k].verdict==="NG");
+  const rec={id:draft.id,line:$("#f-line").value,partNo:p.partNo,welds:p.welds,inspector:$("#f-inspector").value.trim(),by:st.user.uid,email:st.user.email||"",
+    date:fmtDate(at),month:fmtDate(at).slice(0,7),week:weekOfMonth(at),clientAt:at.getTime(),result:ng?"NG":"OK",slots};
+  $("#saveBtn").disabled=true;$("#saveBtn").textContent="저장 중…";
+  try{await st.api.saveInspection(rec);newDraft();clearDraft();renderSlots();toast(`${p.partNo} 검사를 저장했습니다 (${rec.result})`)}
+  catch(e){setStatus("검사를 저장하지 못했습니다: "+st.api.errText(e));updateProgress()}
+  $("#saveBtn").textContent="검사 저장";
+});
+
+/* ---------------- 체크시트 ---------------- */
+function watchMonth(){
+  const M=$("#s-month").value||fmtDate(new Date()).slice(0,7);if(M===st.month&&st.unsubMonth)return;
+  if(st.unsubMonth)st.unsubMonth();st.month=M;st.insp=[];renderSheet();
+  st.unsubMonth=st.api.watchMonth(M,list=>{st.insp=list;renderSheet()},e=>showBanner("검사 기록을 불러오지 못했습니다: "+st.api.errText(e)));
+}
+function filtered(){const L=$("#s-line").value,W=$("#s-week").value,P=$("#s-part").value;
+  return st.insp.filter(r=>(!L||r.line===L)&&(!W||String(r.week)===W)&&(!P||r.partNo===P)).sort((a,b)=>(a.createdAtMs||0)-(b.createdAtMs||0))}
+function renderSheet(){
+  const rows=filtered(),box=$("#sheetBox"),ng=rows.filter(r=>r.result==="NG").length,app=rows.filter(r=>Object.values(r.slots||{}).some(s=>s.src==="camera-app")).length;
+  $("#sumBox").innerHTML=`<span><b>${rows.length}</b>건 검사</span><span><b>${rows.length-ng}</b>OK</span><span><b style="color:${ng?"var(--ng)":"inherit"}">${ng}</b>NG</span>${app?`<span><b style="color:var(--warn)">${app}</b>카메라 앱 촬영 포함</span>`:""}`;
+  $("#xlsxBtn").disabled=!rows.length;
+  if(!rows.length){box.innerHTML=`<div class="empty">${st.insp.length?"이 조건에 맞는 검사가 없습니다. 주차나 작업반을 바꿔 보세요.":"이 달에 저장된 검사가 없습니다."}</div>`;return}
+  const maxW=Math.max(1,...rows.map(r=>r.welds||0)),keys=["all"].concat(Array.from({length:maxW},(_,i)=>"w"+(i+1)));
+  let h=`<table class="sheet"><thead><tr><th rowspan="2">품번</th><th rowspan="2">전체 사진</th><th colspan="${maxW}">용접부</th></tr><tr>${Array.from({length:maxW},(_,i)=>`<th>${circled(i)}</th>`).join("")}</tr></thead><tbody>`;
+  rows.forEach(r=>{
+    h+=`<tr><td class="part" rowspan="2"><div class="pn">${esc(r.partNo)}</div><div class="meta mono">${esc(r.date)} · ${r.week}주차</div><div class="meta">${esc(r.line)} · ${esc(r.inspector)}</div><div style="margin-top:4px"><span class="pill ${r.result==="NG"?"ng":"ok"}">${esc(r.result)}</span></div>${st.admin?`<button class="btn small danger" style="margin-top:6px;min-height:30px" data-del="${esc(r.id)}" type="button">삭제</button>`:""}</td>`;
+    keys.forEach(k=>{const s=r.slots&&r.slots[k];h+=s?`<td class="ph"><button type="button" data-r="${esc(r.id)}" data-k="${k}" aria-label="${esc(r.partNo)} ${slotName(k)} 크게 보기"><img loading="lazy" src="${s.thumb}" alt=""></button></td>`:`<td class="ph na"></td>`});
+    h+=`</tr><tr class="judge">`;keys.forEach(k=>{const s=r.slots&&r.slots[k];h+=s?`<td class="v-${esc(s.verdict)}">${esc(s.verdict)}</td>`:`<td class="na"></td>`});h+=`</tr>`;
+  });
+  box.innerHTML=h+`</tbody></table>`;
+}
+$("#s-month").addEventListener("change",watchMonth);
+["#s-line","#s-week","#s-part"].forEach(s=>$(s).addEventListener("change",renderSheet));
+const delArm={};let lbUrl=null;
+$("#sheetBox").addEventListener("click",async e=>{
+  const d=e.target.closest("[data-del]");
+  if(d){const id=d.dataset.del;if(!delArm[id]||Date.now()-delArm[id]>3000){delArm[id]=Date.now();d.textContent="한 번 더 눌러 삭제";return}try{await st.api.delInspection(id);toast("검사 기록을 삭제했습니다")}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}return}
+  const b=e.target.closest("button[data-r]");if(!b)return;const r=st.insp.find(x=>x.id===b.dataset.r),s=r&&r.slots[b.dataset.k];if(!s)return;
+  $("#lbImg").src=s.thumb;$("#lbCap").textContent=`${r.partNo} · ${slotName(b.dataset.k)} · ${s.verdict} · ${r.date} ${s.time}${s.src==="camera-app"?" · 카메라 앱 촬영":""} · 원본 불러오는 중…`;$("#lb").hidden=false;
+  try{const bytes=await photoBytes(s);if(bytes&&!$("#lb").hidden){if(lbUrl)URL.revokeObjectURL(lbUrl);lbUrl=URL.createObjectURL(new Blob([bytes],{type:"image/jpeg"}));$("#lbImg").src=lbUrl;$("#lbCap").textContent=$("#lbCap").textContent.replace(" · 원본 불러오는 중…","")}}catch(err){$("#lbCap").textContent=$("#lbCap").textContent.replace("원본 불러오는 중…","원본을 불러오지 못했습니다")}
+});
+function closeLb(){$("#lb").hidden=true;$("#lbImg").src="";if(lbUrl){URL.revokeObjectURL(lbUrl);lbUrl=null}}
+$("#lbClose").addEventListener("click",closeLb);$("#lb").addEventListener("click",e=>{if(e.target.id==="lb")closeLb()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLb()});
+
+/* 엑셀용 사진: 원본을 불러와 가로·세로 최대 900px, 고화질로 (실패하면 미리보기 사용) */
+async function excelImage(s){
+  try{
+    const bytes=await photoBytes(s);if(!bytes)throw 0;
+    const bmp=await createImageBitmap(new Blob([bytes],{type:"image/jpeg"}));
+    const f=Math.min(1,900/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*f),h=Math.round(bmp.height*f);
+    const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(bmp,0,0,w,h);if(bmp.close)bmp.close();
+    const dataUrl=cv.toDataURL("image/jpeg",0.88);cv.width=cv.height=0;return{dataUrl,w,h};
+  }catch(e){
+    const im=await new Promise(res=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>res({width:240,height:180});i.src=s.thumb});
+    return{dataUrl:s.thumb,w:im.width||240,h:im.height||180};
+  }
+}
+$("#xlsxBtn").addEventListener("click",async()=>{
+  const rows=filtered();if(!rows.length)return;if(!window.ExcelJS){toast("엑셀 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요");return}
+  const btn=$("#xlsxBtn");btn.disabled=true;btn.textContent="만드는 중…";
+  try{
+    const maxW=Math.max(1,...rows.map(r=>r.welds||0)),lastCol=2+maxW,line=$("#s-line").value||"전체",M=$("#s-month").value,W=$("#s-week").value;
+    const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet(line);
+    ws.columns=[{width:16},{width:22}].concat(Array.from({length:maxW},()=>({width:22})));
+    const thin={style:"thin"},box={top:thin,left:thin,bottom:thin,right:thin},center={horizontal:"center",vertical:"middle",wrapText:true};
+    ws.mergeCells(2,2,2,Math.max(2,lastCol-3));ws.getCell(2,2).value="파괴검사 이력";ws.getCell(2,2).font={bold:true,size:16};
+    ws.getCell(2,lastCol-2).value="검사일시";ws.getCell(2,lastCol-1).value=M?`${+M.slice(5)}월`:"";ws.getCell(2,lastCol).value=W?`${W}주차`:"";
+    ws.getCell(3,1).value="검사방법";ws.mergeCells(3,2,3,Math.max(2,lastCol-4));ws.getCell(3,2).value="측정할 제품을 고정하고 망치와 정으로 용접부 직접 타격하여 파괴검사 실시\n(용접부 모재를 물고 떨어질 것)";ws.getRow(3).height=34;ws.getCell(3,lastCol-3).value="검사시료";
+    ws.mergeCells(4,1,5,1);ws.getCell(4,1).value="품번";ws.mergeCells(4,2,5,2);ws.getCell(4,2).value="전체 사진";ws.mergeCells(4,3,4,lastCol);ws.getCell(4,3).value="용접부";
+    for(let i=0;i<maxW;i++)ws.getCell(5,3+i).value=circled(i);
+    for(let r=2;r<=5;r++)for(let c=1;c<=lastCol;c++){const cell=ws.getCell(r,c);cell.alignment=center;if(r>=3)cell.border=box;if(r>=4){cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE8ECF0"}};cell.font={bold:true}}}
+    let rowNo=6;const keys=["all"].concat(Array.from({length:maxW},(_,i)=>"w"+(i+1)));
+    const total=rows.reduce((n,r)=>n+Object.keys(r.slots||{}).length,0);let done=0;
+    /* 원본 사진을 4장씩 동시에 미리 불러오기 */
+    const jobs=[];rows.forEach(r=>keys.forEach(k=>{const s=r.slots&&r.slots[k];if(s)jobs.push(s)}));
+    const imgMap=new Map();let ji=0;
+    await Promise.all(Array.from({length:4},async()=>{while(ji<jobs.length){const s=jobs[ji++];imgMap.set(s,await excelImage(s));btn.textContent=`원본 사진 불러오는 중… ${++done}/${total}`}}));
+    for(const r of rows){
+      ws.getRow(rowNo).height=125;ws.getRow(rowNo+1).height=20;
+      ws.getCell(rowNo,1).value=`${r.partNo}\n${r.date}\n${r.inspector}`;ws.getCell(rowNo+1,1).value="판정";
+      for(let i=0;i<keys.length;i++){const k=keys[i],s=r.slots&&r.slots[k],col=2+i,vc=ws.getCell(rowNo+1,col);
+        if(!s)continue;
+        vc.value=s.verdict;vc.font={bold:true,color:{argb:s.verdict==="NG"?"FFC62B2B":"FF16794A"}};
+        const img=imgMap.get(s)||await excelImage(s);
+        const id=wb.addImage({base64:img.dataUrl,extension:"jpeg"});
+        /* 칸(약 158×165px) 안에 비율을 지켜서 맞춤 */
+        const boxW=150,boxH=158,f=Math.min(boxW/img.w,boxH/img.h),w=Math.round(img.w*f),h=Math.round(img.h*f);
+        ws.addImage(id,{tl:{col:col-1+0.03,row:rowNo-1+0.03},ext:{width:w,height:h}})}
+      for(let rr=rowNo;rr<=rowNo+1;rr++)for(let c=1;c<=lastCol;c++){const cell=ws.getCell(rr,c);cell.border=box;cell.alignment=center}
+      rowNo+=2;
+    }
+    const buf=await wb.xlsx.writeBuffer(),a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+    a.download=`파괴검사_${line}_${M||""}${W?"_"+W+"주차":""}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+    toast("엑셀 파일을 내려받았습니다");
+  }catch(e){toast("엑셀을 만들지 못했습니다: "+(e.message||e))}
+  btn.disabled=false;btn.textContent="엑셀로 내보내기";
+});
+
+/* ---------------- 품번 관리 ---------------- */
+function renderParts(){
+  $("#partAdd").hidden=!st.admin;
+  $("#partsNote").textContent=st.admin?"품번마다 용접부 수를 정해 두면 검사 입력에서 그 수만큼 촬영 칸이 생깁니다.":"품번과 용접부 개수는 관리자만 바꿀 수 있습니다.";
+  $("#plist").innerHTML=st.parts.length?st.parts.map(p=>`<div class="pitem"><span class="pn">${esc(p.partNo)}</span><div class="row">${st.admin?`<div class="stepper"><button type="button" data-pn="${esc(p.partNo)}" data-d="-1" aria-label="줄이기">−</button><span>${p.welds}</span><button type="button" data-pn="${esc(p.partNo)}" data-d="1" aria-label="늘리기">+</button></div><button class="btn small danger" type="button" data-rm="${esc(p.partNo)}">삭제</button>`:`<span class="mono">용접부 ${p.welds}개</span>`}</div></div>`).join(""):`<div class="empty">등록된 품번이 없습니다.</div>`;
+}
+const stepT={};
+$("#plist").addEventListener("click",async e=>{
+  const b=e.target.closest("button");if(!b||!st.admin)return;
+  if(b.dataset.rm){if(b.textContent!=="확인"){b.textContent="확인";setTimeout(()=>b.textContent="삭제",3000);return}try{await st.api.delPart(b.dataset.rm)}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}return}
+  const p=st.parts.find(x=>x.partNo===b.dataset.pn);if(!p)return;const n=Math.min(20,Math.max(1,p.welds+(+b.dataset.d)));if(n===p.welds)return;
+  p.welds=n;b.parentElement.querySelector("span").textContent=n;clearTimeout(stepT[p.partNo]);
+  stepT[p.partNo]=setTimeout(()=>st.api.setPart({partNo:p.partNo,welds:n}).catch(err=>toast("저장하지 못했습니다: "+st.api.errText(err))),600);
+});
+$("#p-add").addEventListener("click",async()=>{
+  const no=$("#p-new").value.trim().toUpperCase(),n=Math.min(20,Math.max(1,parseInt($("#p-n").value,10)||1));
+  if(!/^[A-Z0-9_.\-]+$/.test(no)){toast("품번은 영문·숫자·하이픈(-)만 쓸 수 있습니다");return}
+  try{await st.api.setPart({partNo:no,welds:n});$("#p-new").value="";toast(`${no} 추가 (용접부 ${n}개)`)}catch(e){toast("추가하지 못했습니다: "+st.api.errText(e))}
+});
+
+/* ---------------- 화면 전환 ---------------- */
+const VIEWS=["new","sheet","parts"];
+function route(){const v=VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):"new";VIEWS.forEach(x=>$("#v-"+x).hidden=x!==v);document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===v?"page":"false"));window.scrollTo(0,0)}
+window.addEventListener("hashchange",route);
+function renderAll(){renderLineSelects();renderLines();renderPartSelects();renderSlots();renderParts();renderSheet()}
+start();
+</script>
+</body>
+</html>
