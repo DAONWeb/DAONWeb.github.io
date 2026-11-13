@@ -265,7 +265,7 @@ table.stat td.bad{color:var(--ng);font-weight:700}
 <nav class="tabs" id="nav-wl" aria-label="작업일보 화면 전환" hidden>
   <a href="#wl" data-v="wl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>설비 현황</a>
   <a href="#wl-stats" data-v="wl-stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>실적</a>
-  <a href="#wl-eq" data-v="wl-eq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>설비 관리</a>
+  <a href="#wl-eq" data-v="wl-eq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>설비·권한</a>
 </nav>
 <div class="wrap">
   <header class="top">
@@ -453,6 +453,17 @@ table.stat td.bad{color:var(--ng);font-weight:700}
       <div id="eq-preview" style="display:grid;gap:8px"></div>
       <div class="progress">작업반 목록은 파괴검사 › 품번 관리 › 작업반 관리에서 함께 관리합니다.</div>
     </div>
+    <div class="panel" id="roleAdmin" hidden>
+      <h2>계정별 사용 권한</h2>
+      <div class="progress">여기에 넣은 계정만 제한됩니다. 목록에 없는 계정은 지금처럼 파괴검사와 작업일보(전체 반)를 모두 씁니다. 계정 자체(아이디·비밀번호)는 Firebase 콘솔 › Authentication에서 만듭니다.</div>
+      <div class="plist" id="roleList"></div>
+      <div class="fields">
+        <label class="field"><span class="label">아이디</span><input id="r-id" class="mono" placeholder="예: park" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
+        <label class="field"><span class="label">작업일보</span><select id="r-wl"></select></label>
+        <label class="field"><span class="label">파괴검사 체크시트</span><select id="r-weld"><option value="0">사용 안 함</option><option value="1">사용</option></select></label>
+      </div>
+      <div class="row"><button class="btn primary" id="r-save" type="button">권한 저장</button><span class="progress">같은 아이디로 다시 저장하면 권한이 바뀝니다.</span></div>
+    </div>
   </section>
 </div>
 
@@ -509,6 +520,7 @@ const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k
 let toastT;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2800)}
 function setStatus(t){const el=$("#status");el.textContent=t||"";el.hidden=!t}
 function show(id){["#v-setup","#v-login","#v-app"].forEach(x=>$(x).hidden=x!==id)}
+function monthsBetween(from,to){const out=[];let [y,m]=from.slice(0,7).split("-").map(Number);const [ty,tm]=to.slice(0,7).split("-").map(Number);while(y<ty||(y===ty&&m<=tm)){out.push(`${y}-${String(m).padStart(2,"0")}`);m++;if(m>12){m=1;y++}}return out}
 async function downloadWb(wb,name){
   const buf=await wb.xlsx.writeBuffer(),a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
@@ -546,8 +558,13 @@ async function firebaseApi(cfg){
     /* 작업일보 */
     watchEquip:(cb,err)=>F.onSnapshot(F.doc(db,"settings","equipment"),s=>cb(s.exists()?(s.data().list||[]):[]),err),
     setEquip:list=>F.setDoc(F.doc(db,"settings","equipment"),{list}),
-    watchWlDate:(date,cb,err)=>F.onSnapshot(F.query(F.collection(db,"worklogs"),F.where("date","==",date)),s=>cb(s.docs.map(wlDoc)),err),
-    getWlRange:async(from,to)=>{const s=await F.getDocs(F.query(F.collection(db,"worklogs"),F.where("date",">=",from),F.where("date","<=",to)));return s.docs.map(wlDoc)},
+    /* line 이 있으면 그 반 기록만 조회 (반 전용 계정은 보안 규칙상 이렇게만 읽을 수 있음) */
+    watchWlDate:(date,line,cb,err)=>F.onSnapshot(F.query(F.collection(db,"worklogs"),...[F.where("date","==",date)].concat(line?[F.where("line","==",line)]:[])),s=>cb(s.docs.map(wlDoc)),err),
+    getWlRange:async(from,to,line)=>{
+      if(!line){const s=await F.getDocs(F.query(F.collection(db,"worklogs"),F.where("date",">=",from),F.where("date","<=",to)));return s.docs.map(wlDoc)}
+      const out=[];for(const m of monthsBetween(from,to)){const s=await F.getDocs(F.query(F.collection(db,"worklogs"),F.where("month","==",m),F.where("line","==",line)));s.docs.forEach(d=>{const x=wlDoc(d);if(x.date>=from&&x.date<=to)out.push(x)})}return out},
+    watchRoles:(cb,err)=>F.onSnapshot(F.doc(db,"settings","roles"),s=>cb(s.exists()?(s.data().users||{}):{}),err),
+    setRoles:users=>F.setDoc(F.doc(db,"settings","roles"),{users}),
     getWl:async id=>{const s=await F.getDoc(F.doc(db,"worklogs",id));return s.exists()?wlDoc(s):null},
     createWl:(id,data)=>F.setDoc(F.doc(db,"worklogs",id),Object.assign({},data,{createdAt:F.serverTimestamp(),updatedAt:F.serverTimestamp()})),
     updateWl:(id,data)=>F.updateDoc(F.doc(db,"worklogs",id),Object.assign({},data,{updatedAt:F.serverTimestamp()})),
@@ -559,7 +576,11 @@ async function firebaseApi(cfg){
 }
 
 /* ---------------- 상태 ---------------- */
-const st={driveUrl:"",lines:LINES_DEFAULT.slice(),api:null,user:null,admin:false,offset:0,parts:[],insp:[],unsubMonth:null,month:""};
+const st={driveUrl:"",lines:LINES_DEFAULT.slice(),api:null,user:null,admin:false,offset:0,parts:[],insp:[],unsubMonth:null,month:"",roles:{},role:{weld:true,wl:"all",line:""},weldStarted:false};
+/* 계정 권한: settings/roles 의 users[이메일] = {weld:true|false, wl:"all"|"line"|"none", line:"용접1반"}. 없으면 전부 사용 */
+function computeRole(){if(st.admin)return{weld:true,wl:"all",line:""};const r=st.roles[(st.user&&st.user.email||"").toLowerCase()]||{};const wl=r.wl==="line"&&r.line?"line":(r.wl==="none"?"none":"all");return{weld:r.weld!==false,wl,line:wl==="line"?r.line:""}}
+const wlLock=()=>st.role.wl==="line"?st.role.line:"";
+const modules=()=>[st.role.wl!=="none"&&"wl",st.role.weld&&"weld"].filter(Boolean);
 const now=()=>new Date(Date.now()+st.offset);
 const draft={id:null,slots:{},busy:{}};
 function newDraft(){draft.id=st.api.newId();draft.slots={};draft.busy={}}
@@ -584,14 +605,35 @@ async function onUser(u){
   st.admin=ADMIN_EMAILS.includes((u.email||"").toLowerCase());
   if(!$("#f-inspector").value)$("#f-inspector").value=u.displayName||(u.email||"").split("@")[0];
   $("#hello").textContent=`${userName()}님, 할 일을 고르세요.`;
+  st.roles={};st.role=computeRole();
+  await new Promise(res=>{let first=true;const done=()=>{if(first){first=false;res()}};setTimeout(done,6000);st.api.watchRoles(u2=>{st.roles=u2||{};applyRole();done()},()=>done())});
+  st.role=computeRole();
   show("#v-app");newDraft();renderAll();route();
   try{st.offset=await st.api.serverOffset(u.uid);if(Math.abs(st.offset)>120000)showBanner(`이 휴대폰 시계가 서버와 ${Math.round(st.offset/60000)}분 차이 납니다. 워터마크와 기록은 서버 시각으로 남습니다.`)}catch(e){showBanner("서버 시각을 확인하지 못했습니다: "+st.api.errText(e))}
   st.api.watchDrive(url=>{st.driveUrl=url;renderDrive()},()=>{});
-  st.api.watchLines(list=>{st.lines=(list&&list.length)?list:LINES_DEFAULT.slice();renderLineSelects();renderLines();renderWlLines();renderBoard();renderEquip()},()=>{});
+  st.api.watchLines(list=>{st.lines=(list&&list.length)?list:LINES_DEFAULT.slice();renderLineSelects();renderLines();renderWlLines();renderBoard();renderEquip();renderRoles()},()=>{});
   st.api.watchParts(list=>{const np=list.sort((a,b)=>a.partNo.localeCompare(b.partNo));if(JSON.stringify(np)===JSON.stringify(st.parts))return;const before=(curPart()||{}).welds;st.parts=np;renderParts();renderPartSelects();renderDatalists();if((curPart()||{}).welds!==before)renderSlots()},e=>showBanner("품번을 불러오지 못했습니다: "+st.api.errText(e)));
+  if(st.role.wl!=="none")wlInit();
+  if(st.role.weld)startWeld();
+}
+/* 파괴검사 기록 읽기는 파괴검사 권한이 있는 계정만 시작 */
+async function startWeld(){
+  if(st.weldStarted||!st.user)return;st.weldStarted=true;
   watchMonth();
-  wlInit();
-  try{const d=await st.api.getDraft(u.uid);if(d&&d.slots&&Object.keys(d.slots).length){draft.id=d.id||draft.id;draft.slots=d.slots;if(d.part){wantPart=d.part}if(d.line){wantLine=d.line;renderLineSelects()}renderPartSelects();renderSlots();toast("작성 중이던 검사를 불러왔습니다")}}catch(e){}
+  try{const d=await st.api.getDraft(st.user.uid);if(d&&d.slots&&Object.keys(d.slots).length){draft.id=d.id||draft.id;draft.slots=d.slots;if(d.part){wantPart=d.part}if(d.line){wantLine=d.line;renderLineSelects()}renderPartSelects();renderSlots();toast("작성 중이던 검사를 불러왔습니다")}}catch(e){}
+}
+function applyRole(){
+  const before=JSON.stringify(st.role);st.role=computeRole();const changed=before!==JSON.stringify(st.role);
+  renderMenu();renderRoles();
+  if(!st.user||!changed)return;
+  if(st.role.wl!=="none"){if(!wl.inited)wlInit();else{wl.dayDate="";watchWlDay();wl.stats=null;renderWlLines();renderBoard();renderEquip();renderStats()}}
+  if(st.role.weld)startWeld();
+  route();
+}
+function renderMenu(){
+  $("a.menu-card[href='#new']").hidden=!st.role.weld;$("a.menu-card[href='#wl']").hidden=st.role.wl==="none";
+  const n=modules().length;$("#hello").textContent=n?`${userName()}님, 할 일을 고르세요.${wlLock()?` (작업일보: ${wlLock()} 전용)`:""}`:`${userName()}님 계정에는 사용할 수 있는 메뉴가 없습니다. 관리자에게 문의하세요.`;
+  const nav=$("#nav-wl");nav.querySelector("a[data-v='wl-eq']").hidden=!st.admin;nav.style.gridTemplateColumns=`repeat(${st.admin?3:2},1fr)`;
 }
 function userName(){const u=st.user;return u?(u.displayName||(u.email||"").split("@")[0]):""}
 function showBanner(t){const b=$("#banner");b.textContent=t;b.hidden=false}
@@ -599,7 +641,7 @@ function tick(){const d=now();$("#clock").textContent=`${fmtDate(d)} ${fmtTime(d
 
 $("#loginForm").addEventListener("submit",async e=>{e.preventDefault();$("#lg-err").textContent="";$("#lg-btn").disabled=true;
   try{await st.api.login(toLoginEmail($("#lg-email").value),$("#lg-pw").value)}catch(err){$("#lg-err").textContent=st.api.errText(err)}$("#lg-btn").disabled=false});
-$("#logout").addEventListener("click",()=>{stopCam();history.replaceState(null,"",location.pathname+location.search+"#home");wl.edit=null;st.api.logout()});
+$("#logout").addEventListener("click",()=>{stopCam();history.replaceState(null,"",location.pathname+location.search+"#home");wl.edit=null;st.weldStarted=false;st.api.logout()});
 $("#homeBtn").addEventListener("click",()=>{location.hash="#home"});
 
 /* ---------------- 구글 드라이브 사진 저장 ---------------- */
@@ -978,11 +1020,15 @@ function wlInit(){
   statsRange("month");
 }
 function watchWlDay(){
-  if(!wl.date||!st.api)return;if(wl.dayDate===wl.date&&wl.unsubDay)return;
-  if(wl.unsubDay)wl.unsubDay();wl.dayDate=wl.date;wl.day=[];renderBoard();
-  wl.unsubDay=st.api.watchWlDate(wl.date,list=>{wl.day=list;renderBoard();renderDatalists()},e=>showBanner("작업일보를 불러오지 못했습니다: "+st.api.errText(e)));
+  const key=wl.date+"|"+wlLock();
+  if(!wl.date||!st.api||st.role.wl==="none")return;if(wl.dayDate===key&&wl.unsubDay)return;
+  if(wl.unsubDay)wl.unsubDay();wl.dayDate=key;wl.day=[];renderBoard();
+  wl.unsubDay=st.api.watchWlDate(wl.date,wlLock(),list=>{wl.day=list;renderBoard();renderDatalists()},e=>showBanner("작업일보를 불러오지 못했습니다: "+st.api.errText(e)));
 }
 function renderWlLines(){
+  const lock=wlLock();
+  if(lock){["#w-line","#ws-line"].forEach(s=>{const el=$(s);el.innerHTML=`<option>${esc(lock)}</option>`;el.value=lock;el.disabled=true});return}
+  ["#w-line","#ws-line"].forEach(s=>$(s).disabled=false);
   const opts=allLines().map(l=>`<option>${esc(l)}</option>`).join("");
   const w=$("#w-line"),pv=w.value||ls.get("wl.line")||"";w.innerHTML=`<option value="">전체 작업반</option>`+opts;w.value=allLines().includes(pv)?pv:"";
   const s=$("#ws-line"),sv=s.value;s.innerHTML=`<option value="">전체 작업반</option>`+opts;s.value=allLines().includes(sv)?sv:"";
@@ -1251,7 +1297,7 @@ async function loadStats(){
   if(f>t){[f,t]=[t,f];$("#ws-from").value=f;$("#ws-to").value=t}
   if((new Date(t)-new Date(f))/864e5>186){toast("한 번에 6개월까지 조회할 수 있습니다");return}
   const btn=$("#ws-load");btn.disabled=true;btn.textContent="불러오는 중…";
-  try{wl.stats=await st.api.getWlRange(f,t);wl.statsKey=f+"~"+t;renderDatalists();renderStats()}
+  try{wl.stats=await st.api.getWlRange(f,t,wlLock());wl.statsKey=f+"~"+t;renderDatalists();renderStats()}
   catch(e){toast("실적을 불러오지 못했습니다: "+st.api.errText(e))}
   btn.disabled=false;btn.textContent="조회";
 }
@@ -1357,7 +1403,7 @@ async function exportForms(logs,fname){
 function renderEquip(){
   const box=$("#eqList");if(!box)return;$("#eqAdd").hidden=!st.admin;
   $("#eqNote").textContent=st.admin?"설비 현황 화면에 여기 등록된 설비가 카드로 나타납니다. 삭제해도 지난 일보와 실적은 그대로 남습니다.":"설비는 관리자만 추가·삭제할 수 있습니다.";
-  const lines=allLines().filter(l=>wl.equip.some(e=>e.line===l)||st.lines.includes(l));
+  const lines=wlLock()?[wlLock()]:allLines().filter(l=>wl.equip.some(e=>e.line===l)||st.lines.includes(l));
   box.innerHTML=lines.map(l=>{const eqs=wl.equip.filter(e=>e.line===l);
     return `<div><div class="label" style="margin-bottom:4px">${esc(l)} · ${eqs.length}대</div><div class="plist">${eqs.length?eqs.map(e=>`<div class="pitem"><span class="pn">${esc(e.no)}</span>${st.admin?`<div class="row"><button class="btn small" type="button" data-up="${esc(e.id)}" aria-label="위로">↑</button><button class="btn small danger" type="button" data-rmeq="${esc(e.id)}">삭제</button></div>`:""}</div>`).join(""):`<div class="progress">등록된 설비 없음</div>`}</div></div>`}).join("")||`<div class="empty">등록된 설비가 없습니다.</div>`;
 }
@@ -1461,16 +1507,49 @@ $("#eq-tpl").addEventListener("click",async()=>{
   try{await downloadWb(wb,"설비목록_양식.xlsx");toast(wl.equip.length?"현재 설비 목록을 내려받았습니다. 아래에 새 설비를 이어 적어 올리세요":"양식을 내려받았습니다 (예시 줄은 지우고 쓰세요)")}catch(err){toast("양식을 만들지 못했습니다: "+(err.message||err))}
 });
 
+/* ---------- 계정별 권한 (관리자) ---------- */
+function roleText(r){const w=r.wl==="line"?`작업일보 ${r.line}만`:r.wl==="none"?"작업일보 사용 안 함":"작업일보 전체 반";return `${w} · 파괴검사 ${r.weld===false?"사용 안 함":"사용"}`}
+function renderRoles(){
+  const box=$("#roleAdmin");if(!box)return;box.hidden=!st.admin;if(!st.admin)return;
+  const sel=$("#r-wl"),pv=sel.value;
+  sel.innerHTML=st.lines.map(l=>`<option value="line:${esc(l)}">${esc(l)}만 (작성·현황)</option>`).join("")+`<option value="all">전체 반</option><option value="none">사용 안 함</option>`;
+  if([...sel.options].some(o=>o.value===pv))sel.value=pv;
+  const list=Object.entries(st.roles).sort((a,b)=>a[0].localeCompare(b[0]));
+  $("#roleList").innerHTML=list.length?list.map(([em,r])=>`<div class="pitem"><div><span class="pn">${esc(em.endsWith("@"+ID_DOMAIN)?em.split("@")[0]:em)}</span><div class="progress">${esc(roleText(r))}${r.wl==="line"&&!st.lines.includes(r.line)?` <span class="pill ng">없는 작업반</span>`:""}</div></div><div class="row"><button class="btn small" type="button" data-redit="${esc(em)}">수정</button><button class="btn small danger" type="button" data-rdel="${esc(em)}">삭제</button></div></div>`).join(""):`<div class="progress">제한된 계정이 없습니다.</div>`;
+}
+$("#roleList").addEventListener("click",async e=>{
+  if(!st.admin)return;
+  const ed=e.target.closest("[data-redit]");
+  if(ed){const em=ed.dataset.redit,r=st.roles[em]||{};$("#r-id").value=em.endsWith("@"+ID_DOMAIN)?em.split("@")[0]:em;$("#r-wl").value=r.wl==="line"?"line:"+r.line:(r.wl||"all");$("#r-weld").value=r.weld===false?"0":"1";$("#r-id").scrollIntoView({block:"center"});return}
+  const b=e.target.closest("[data-rdel]");if(!b)return;
+  if(b.textContent!=="확인"){b.textContent="확인";setTimeout(()=>{if(b.isConnected)b.textContent="삭제"},3000);return}
+  const users=Object.assign({},st.roles);delete users[b.dataset.rdel];
+  try{await st.api.setRoles(users);toast("권한 제한을 풀었습니다 (모든 메뉴 사용)")}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}
+});
+$("#r-save").addEventListener("click",async()=>{
+  if(!st.admin)return;
+  const raw=$("#r-id").value.trim();if(!raw){toast("아이디를 입력하세요");return}
+  const em=toLoginEmail(raw);if(ADMIN_EMAILS.includes(em)){toast("관리자 계정은 제한할 수 없습니다");return}
+  const v=$("#r-wl").value,r={weld:$("#r-weld").value==="1",wl:v.startsWith("line:")?"line":v,line:v.startsWith("line:")?v.slice(5):""};
+  if(r.wl==="none"&&!r.weld&&!confirmArm("r-save")){toast("두 메뉴를 모두 막으면 이 계정은 아무것도 못 씁니다. 맞으면 한 번 더 누르세요");return}
+  try{await st.api.setRoles(Object.assign({},st.roles,{[em]:r}));$("#r-id").value="";toast(`${raw}: ${roleText(r)}`)}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}
+});
+const armT={};function confirmArm(k){if(armT[k]&&Date.now()-armT[k]<4000){armT[k]=0;return true}armT[k]=Date.now();return false}
+
 /* ---------------- 화면 전환 ---------------- */
 const ROUTES={home:"home",new:"weld",sheet:"weld",parts:"weld",wl:"wl","wl-edit":"wl","wl-stats":"wl","wl-eq":"wl"};
 const TITLES={home:"다온 현장",weld:"용접 파괴검사 체크시트",wl:"작업일보"};
 function route(){
   let v=location.hash.slice(1);if(!(v in ROUTES))v="home";
+  if(st.user){const ms=modules();
+    if((ROUTES[v]==="weld"&&!st.role.weld)||(ROUTES[v]==="wl"&&st.role.wl==="none")||(v==="wl-eq"&&!st.admin))v="home";
+    if(v==="home"&&ms.length===1)v=ms[0]==="wl"?"wl":"new";
+    if(location.hash.slice(1)!==v)history.replaceState(null,"",location.pathname+location.search+"#"+v)}
   if(v==="wl-edit"&&!wl.edit){v="wl";history.replaceState(null,"",location.pathname+location.search+"#wl")}
   if(v!=="wl-edit"&&wl.edit&&!wl.saving&&!wl.edit._dirty)wl.edit=null;
   const mod=ROUTES[v];
   Object.keys(ROUTES).forEach(x=>$("#v-"+x).hidden=x!==v);
-  $("#nav-weld").hidden=mod!=="weld";$("#nav-wl").hidden=mod!=="wl";$("#homeBtn").hidden=mod==="home";
+  $("#nav-weld").hidden=mod!=="weld";$("#nav-wl").hidden=mod!=="wl";$("#homeBtn").hidden=mod==="home"||(st.user&&modules().length<=1);
   $("#appTitle").textContent=TITLES[mod];document.title=mod==="home"?"다온 현장":TITLES[mod]+" · 다온 현장";
   const tabV=v==="wl-edit"?"wl":v;
   document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current",a.dataset.v===tabV?"page":"false"));
@@ -1480,7 +1559,7 @@ function route(){
   window.scrollTo(0,0);
 }
 window.addEventListener("hashchange",route);
-function renderAll(){renderLineSelects();renderLines();renderPartSelects();renderSlots();renderParts();renderSheet();renderWlLines();renderBoard();renderEquip();renderStats();renderHomeWeld()}
+function renderAll(){renderLineSelects();renderLines();renderPartSelects();renderSlots();renderParts();renderSheet();renderWlLines();renderBoard();renderEquip();renderStats();renderHomeWeld();renderMenu();renderRoles()}
 start();
 </script>
 </body>
