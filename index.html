@@ -646,7 +646,19 @@ $("#s-month").addEventListener("change",watchMonth);
 const delArm={};let lbUrl=null;
 $("#sheetBox").addEventListener("click",async e=>{
   const d=e.target.closest("[data-del]");
-  if(d){const id=d.dataset.del;if(!delArm[id]||Date.now()-delArm[id]>3000){delArm[id]=Date.now();d.textContent="한 번 더 눌러 삭제";return}try{await st.api.delInspection(id);toast("검사 기록을 삭제했습니다")}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}return}
+  if(d){const id=d.dataset.del;if(!delArm[id]||Date.now()-delArm[id]>3000){delArm[id]=Date.now();d.textContent="한 번 더 눌러 삭제";return}
+    const r=st.insp.find(x=>x.id===id);
+    const ids=r?Object.values(r.slots||{}).map(x=>x.driveId).filter(Boolean):[];
+    d.disabled=true;d.textContent="삭제 중…";
+    /* 드라이브 사진은 지우지 않고 "삭제된 기록" 폴더로 옮김 (옮기지 못하면 삭제를 멈춤) */
+    if(ids.length){
+      const label=`${fmtDate(now())} 삭제_${r.date}_${r.line}_${r.partNo}_${id.slice(-5)}`;
+      try{await driveCall("archive",{ids,label})}
+      catch(err){d.disabled=false;d.textContent="삭제";setStatus("사진을 '삭제된 기록' 폴더로 옮기지 못해 삭제를 멈췄습니다: "+(err.message||err));toast("삭제를 멈췄습니다");return}
+    }
+    try{await st.api.delInspection(id);toast(ids.length?`검사 기록을 삭제하고 사진 ${ids.length}장을 '삭제된 기록' 폴더로 옮겼습니다`:"검사 기록을 삭제했습니다")}
+    catch(err){d.disabled=false;d.textContent="삭제";toast("삭제하지 못했습니다: "+st.api.errText(err))}
+    return}
   const b=e.target.closest("button[data-r]");if(!b)return;const r=st.insp.find(x=>x.id===b.dataset.r),s=r&&r.slots[b.dataset.k];if(!s)return;
   $("#lbImg").src=s.thumb;$("#lbCap").textContent=`${r.partNo} · ${slotName(b.dataset.k)} · ${s.verdict} · ${r.date} ${s.time}${s.src==="camera-app"?" · 카메라 앱 촬영":""} · 원본 불러오는 중…`;$("#lb").hidden=false;
   try{const bytes=await photoBytes(s);if(bytes&&!$("#lb").hidden){if(lbUrl)URL.revokeObjectURL(lbUrl);lbUrl=URL.createObjectURL(new Blob([bytes],{type:"image/jpeg"}));$("#lbImg").src=lbUrl;$("#lbCap").textContent=$("#lbCap").textContent.replace(" · 원본 불러오는 중…","")}}catch(err){$("#lbCap").textContent=$("#lbCap").textContent.replace("원본 불러오는 중…","원본을 불러오지 못했습니다")}
