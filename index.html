@@ -259,6 +259,21 @@ table.stat tr.sub td{background:var(--sunk);font-weight:700}
 table.stat tr.total td{font-weight:800;border-top:2px solid var(--fg)}
 table.stat td.bad{color:var(--ng);font-weight:700}
 .eqlist .pitem .pn{font-size:15px}
+.typehead{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:2px 2px -4px}
+.tpill{display:inline-block;padding:1px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;vertical-align:middle}
+.tpill.w{color:var(--ng);background:var(--ng-bg)}
+.tpill.a{color:var(--accent);background:color-mix(in srgb,var(--accent) 13%,transparent)}
+.tpill.e{color:var(--warn);background:var(--warn-bg)}
+.tpill.n{color:var(--muted);border:1px dashed var(--line)}
+.typehead .tpill{font-size:12px;padding:2px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-family:var(--font-mono);font-size:13px;font-weight:600}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bomhint{font-size:12px;color:var(--ok);font-weight:600}
+.eqrow{align-items:flex-start}
+.eqinfo{min-width:0;display:grid;gap:2px}
+.eqinfo .progress{font-size:12px;overflow-wrap:anywhere}
+.tsel{min-height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 6px;font-size:13px}
 #v-wl-edit .sticky-save{flex-wrap:wrap;gap:8px;bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 #v-wl-edit .sticky-save .btn{padding:0 10px;white-space:nowrap}
 .field .tin input{width:100%;min-width:0;padding:8px 6px}
@@ -487,6 +502,7 @@ table.stat td.bad{color:var(--ng);font-weight:700}
         <label class="field"><span class="label">작업일자</span><input type="date" id="w-date"></label>
         <div class="field"><span class="label">근무</span><div class="seg" id="w-shift"><button type="button" data-s="주">주간</button><button type="button" data-s="야">야간</button></div></div>
         <label class="field"><span class="label">작업반</span><select id="w-line"></select></label>
+        <label class="field"><span class="label">설비구분</span><select id="w-type"><option value="">전체 설비</option><option value="용접">용접설비</option><option value="조립">조립설비</option><option value="기타">기타설비</option></select></label>
       </div>
       <div class="row" style="justify-content:space-between">
         <div class="sumline" id="w-sum"></div>
@@ -547,13 +563,20 @@ table.stat td.bad{color:var(--ng);font-weight:700}
       <h2>설비 추가</h2>
       <div class="fields">
         <label class="field"><span class="label">작업반</span><select id="eq-line"></select></label>
+        <label class="field"><span class="label">설비구분</span><select id="eq-type"><option value="용접">용접설비</option><option value="조립">조립설비</option><option value="기타">기타설비</option></select></label>
         <label class="field"><span class="label">설비번호 (여러 대는 쉼표로)</span><input id="eq-no" class="mono" placeholder="예: SPOT-01, SPOT-02" autocapitalize="characters"></label>
       </div>
       <div class="row"><button class="btn primary" id="eq-add" type="button">추가</button></div>
-      <div class="phase">엑셀로 한 번에 등록<span>A열 작업반 · B열 설비번호</span></div>
-      <div class="progress">양식을 내려받아 작업반·설비번호를 채운 뒤 올리세요. 이미 등록된 설비는 건너뛰고, 없는 작업반은 새로 만듭니다. 작업반 칸이 비어 있으면 위 줄의 작업반으로 봅니다.</div>
-      <div class="row"><button class="btn small" id="eq-tpl" type="button">양식 내려받기 (현재 목록 포함)</button><label class="btn small" style="display:inline-flex;align-items:center;cursor:pointer">엑셀·CSV 파일 올리기<input type="file" id="eq-file" accept=".xlsx,.csv,.txt" hidden></label></div>
+      <div class="phase">엑셀로 한 번에 등록<span>설비 · 설비구분 · 생산품번 · 하위부품</span></div>
+      <div class="progress">양식 한 장에 <b>작업반 · 설비번호 · 설비구분 · 생산품번 · 하위부품품번</b>을 함께 적어 올리면 설비 등록, 설비별 생산품번 지정, 품번별 하위부품이 한 번에 저장됩니다.</div>
+      <ul class="progress" style="margin:0;padding-left:18px">
+        <li>빈 칸은 위 줄 값으로 봅니다. 한 설비에 품번이 여러 개면 설비번호 칸을 비우고 아래 줄에 품번만 이어 적으세요.</li>
+        <li>하위부품은 한 줄에 하나씩, 또는 쉼표로 여러 개를 적습니다.</li>
+        <li>파일에 적은 설비의 생산품번 목록과 품번의 하위부품 목록은 파일 내용으로 바뀝니다. 파일에 없는 설비·품번은 그대로 둡니다.</li>
+      </ul>
+      <div class="row"><button class="btn small" id="eq-tpl" type="button">양식 내려받기 (현재 내용 포함)</button><label class="btn small" style="display:inline-flex;align-items:center;cursor:pointer">엑셀·CSV 파일 올리기<input type="file" id="eq-file" accept=".xlsx,.csv,.txt" hidden></label></div>
       <div id="eq-preview" style="display:grid;gap:8px"></div>
+      <div class="progress" id="bomNote"></div>
       <div class="progress">작업반 목록은 파괴검사 › 품번 관리 › 작업반 관리에서 함께 관리합니다.</div>
     </div>
     <div class="panel" id="roleAdmin" hidden>
@@ -665,6 +688,9 @@ async function firebaseApi(cfg){
     /* 작업일보 */
     watchEquip:(cb,err)=>F.onSnapshot(F.doc(db,"settings","equipment"),s=>cb(s.exists()?(s.data().list||[]):[]),err),
     setEquip:list=>F.setDoc(F.doc(db,"settings","equipment"),{list}),
+    /* 생산품번 → 하위부품 품번 목록 */
+    watchBom:(cb,err)=>F.onSnapshot(F.doc(db,"settings","bom"),s=>cb(s.exists()?(s.data().map||{}):{}),err),
+    setBom:map=>F.setDoc(F.doc(db,"settings","bom"),{map}),
     /* line 이 있으면 그 반 기록만 조회 (반 전용 계정은 보안 규칙상 이렇게만 읽을 수 있음) */
     watchWlDate:(date,line,cb,err)=>F.onSnapshot(F.query(F.collection(db,"worklogs"),...[F.where("date","==",date)].concat(line?[F.where("line","==",line)]:[])),s=>cb(s.docs.map(wlDoc)),err),
     getWlRange:async(from,to,line)=>{
@@ -1109,7 +1135,7 @@ const MAX_ITEMS=3, MAX_SUBS=10;
 const DOWN=[["jig","JIG 교체"],["repair","설비수리"],["weld","용접수정"],["s5","3정5S"],["edu","교육"],["etc","기타"]];
 const REF_NOTES=["시업 전 설비 일상점검 후 일상점검표 작성 진행할 것.","초중종 자주검사 체크시트 작성할 것.","안전에 유의하며 매뉴얼에 따라 작업할 것.","작업 전/후 설비 및 JIG 청소 실시할 것.","불량 및 비가동 작성 기준에 따라 필히 작성할 것.","부적합 및 이상발생시 현장관리자 및 품질담당자에게 보고할 것.","부품 LOT 변경에 유의할 것."];
 const FORM_SPEC={"widths":[10.875,10.375,5.375,13.0,13.0,11.5,15.875,25.125,9.125,13.0,13.0,13.0,13.0,13.0,13.0,13.0,13.0],"heights":[20.25,16.5,null,null,18.75,30.0,18.0,39.0,24.95,24.95,24.95,24.95,24.95,24.95,24.95,24.95,24.95,24.95,24.95,24.95,6.0,9.0,12.0,16.5,16.5,16.5,16.5,16.5,16.5,16.5,16.5,null],"merges":[[15,1,15,2],[15,12,15,17],[9,10,10,10],[18,12,18,17],[11,10,12,10],[1,13,4,13],[13,4,13,5],[6,3,6,6],[17,9,17,11],[9,7,10,8],[13,6,14,6],[11,7,12,8],[11,17,12,17],[17,12,17,17],[17,1,17,2],[5,1,5,17],[15,3,15,8],[9,11,10,11],[19,1,19,2],[19,12,19,17],[9,13,10,13],[9,15,10,15],[7,6,8,6],[16,3,16,8],[6,9,6,10],[10,4,10,5],[9,16,10,16],[24,10,31,17],[11,16,12,16],[13,1,14,2],[6,11,6,17],[13,13,14,13],[11,4,11,5],[19,3,19,8],[13,14,14,14],[9,6,10,6],[13,16,14,16],[9,4,9,5],[11,6,12,6],[16,12,16,17],[9,9,10,9],[11,9,12,9],[11,13,12,13],[2,15,4,15],[2,17,4,17],[20,12,20,17],[11,11,12,11],[17,3,17,8],[20,9,20,11],[9,12,10,12],[1,1,4,9],[9,14,10,14],[11,15,12,15],[15,9,15,11],[11,12,12,12],[12,4,12,5],[11,14,12,14],[13,7,14,8],[7,12,7,17],[7,7,8,8],[7,1,8,2],[14,4,14,5],[20,3,20,8],[7,3,8,5],[7,9,7,11],[16,9,16,11],[13,10,14,10],[13,12,14,12],[18,9,18,11],[6,1,6,2],[22,1,23,2],[16,1,16,2],[9,17,10,17],[22,10,23,11],[18,1,18,2],[9,1,10,2],[24,1,31,9],[19,9,19,11],[13,9,14,9],[11,1,12,2],[1,12,4,12],[13,11,14,11],[18,3,18,8],[2,16,4,16],[20,1,20,2],[13,15,14,15],[13,17,14,17],[2,14,4,14]],"styles":[[36.0,1,"center","center",0,"","","",""],[11.0,0,"","",0,"","","",""],[11.0,0,"center","center",0,"","","",""],[14.0,1,"center","center",1,"","","",""],[14.0,1,"center","center",1,"thin","thin","thin","thin"],[14.0,1,"center","center",0,"thin","thin","thin","thin"],[11.0,0,"","",0,"thin","","thin",""],[11.0,0,"","",0,"thin","","thin","thin"],[12.0,1,"left","center",0,"","","",""],[12.0,1,"center","center",0,"medium","medium","thin","double"],[11.0,0,"","",0,"","medium","thin","double"],[16.0,1,"center","center",0,"thin","medium","thin","double"],[11.0,0,"","",0,"","medium","","double"],[12.0,1,"center","center",0,"thin","medium","thin","double"],[12.0,1,"right","center",0,"thin","medium","thin","double"],[12.0,1,"center","center",0,"medium","","thin","thin"],[11.0,0,"","",0,"","","thin",""],[12.0,1,"center","center",0,"double","double","double","thin"],[11.0,0,"","",0,"","double","",""],[11.0,0,"","",0,"","double","double",""],[12.0,1,"center","center",0,"","","","thin"],[12.0,1,"center","center",0,"double","double","thin","thin"],[11.0,0,"","",0,"","double","","thin"],[11.0,0,"","",0,"","double","thin","thin"],[12.0,1,"center","center",0,"","","thin","thin"],[11.0,0,"","",0,"","","","thin"],[11.0,0,"","",0,"","","thin","thin"],[11.0,0,"","",0,"medium","","","thin"],[11.0,0,"","",0,"double","","","thin"],[11.0,0,"","",0,"","","double","thin"],[12.0,1,"center","center",0,"double","thin","thin","thin"],[12.0,1,"center","center",1,"thin","thin","thin","thin"],[12.0,1,"center","center",1,"thin","thin","double","thin"],[12.0,1,"center","center",0,"","thin","thin","thin"],[12.0,1,"center","center",0,"thin","thin","thin","thin"],[12.0,1,"","center",0,"thin","thin","medium","thin"],[12.0,1,"center","center",0,"medium","thin","thin","thin"],[11.0,0,"","",0,"","thin","thin",""],[12.0,1,"right","center",0,"thin","thin","double","thin"],[11.0,0,"","",0,"","thin","double","thin"],[12.0,1,"center","center",0,"","thin","","thin"],[12.0,1,"center","center",0,"double","thin","double","thin"],[11.0,0,"","",0,"","thin","double",""],[12.0,1,"center","center",0,"thin","thin","double","thin"],[12.0,1,"center","center",0,"thin","thin","medium","thin"],[11.0,0,"","",0,"double","","thin","thin"],[11.0,0,"","",0,"thin","","double","thin"],[11.0,0,"","",0,"thin","","medium","thin"],[12.0,1,"center","center",0,"medium","thin","","thin"],[11.0,0,"","",0,"","thin","",""],[12.0,1,"center","center",0,"medium","thin","","medium"],[12.0,1,"center","center",0,"","thin","","medium"],[12.0,1,"center","center",0,"double","thin","thin","medium"],[12.0,1,"center","center",0,"thin","thin","thin","medium"],[12.0,1,"center","center",0,"thin","thin","double","medium"],[12.0,1,"center","center",0,"","thin","thin","medium"],[12.0,1,"center","center",0,"thin","thin","medium","medium"],[11.0,0,"","",0,"medium","","","medium"],[11.0,0,"","",0,"","","","medium"],[12.0,1,"right","center",0,"thin","thin","double","medium"],[11.0,0,"","",0,"","thin","double","medium"],[11.0,0,"","",0,"double","","thin","medium"],[11.0,0,"","",0,"thin","","thin","medium"],[11.0,0,"","",0,"thin","","double","medium"],[11.0,0,"","",0,"","","thin","medium"],[11.0,0,"","",0,"thin","","medium","medium"],[12.0,1,"center","center",0,"medium","medium","thin","thin"],[11.0,0,"","",0,"","medium","thin","thin"],[12.0,1,"center","center",0,"thin","medium","thin","thin"],[11.0,0,"","",0,"","medium","","thin"],[12.0,1,"center","center",0,"thin","medium","medium","thin"],[11.0,0,"","",0,"","medium","medium","thin"],[11.0,0,"","",0,"","thin","thin","thin"],[11.0,0,"","",0,"","thin","","thin"],[11.0,0,"","",0,"","thin","medium","thin"],[12.0,1,"center","center",0,"medium","thin","thin","medium"],[11.0,0,"","",0,"","thin","thin","medium"],[11.0,0,"","",0,"","thin","","medium"],[11.0,0,"","",0,"","thin","medium","medium"],[11.0,0,"","",0,"thin","","","thin"],[16.0,1,"left","top",1,"thin","thin","","thin"],[12.0,1,"left","center",1,"thin","thin","thin","thin"],[11.0,0,"","",0,"thin","","",""],[11.0,1,"center","",0,"","","",""]],"cells":[[1,1,0,"작업 일보"],[1,2,1],[1,3,1],[1,4,1],[1,5,1],[1,6,1],[1,7,1],[1,8,1],[1,9,1],[1,10,2],[1,11,2],[1,12,3],[1,13,4,"결\n재"],[1,14,5,"담당"],[1,15,5,"조/반장"],[1,16,5,"파트장"],[1,17,5,"팀장"],[2,1,1],[2,2,1],[2,3,1],[2,4,1],[2,5,1],[2,6,1],[2,7,1],[2,8,1],[2,9,1],[2,10,2],[2,11,2],[2,12,1],[2,13,6],[2,14,5],[2,15,5],[2,16,5],[2,17,5],[3,1,1],[3,2,1],[3,3,1],[3,4,1],[3,5,1],[3,6,1],[3,7,1],[3,8,1],[3,9,1],[3,10,2],[3,11,2],[3,12,1],[3,13,6],[3,14,6],[3,15,6],[3,16,6],[3,17,6],[4,1,1],[4,2,1],[4,3,1],[4,4,1],[4,5,1],[4,6,1],[4,7,1],[4,8,1],[4,9,1],[4,10,2],[4,11,2],[4,12,1],[4,13,7],[4,14,7],[4,15,7],[4,16,7],[4,17,7],[5,1,8,"▣ 개인 작업 일보"],[5,2,1],[5,3,1],[5,4,1],[5,5,1],[5,6,1],[5,7,1],[5,8,1],[5,9,1],[5,10,1],[5,11,1],[5,12,1],[5,13,1],[5,14,1],[5,15,1],[5,16,1],[5,17,1],[6,1,9,"작업자"],[6,2,10],[6,3,11],[6,4,12],[6,5,12],[6,6,10],[6,7,13,"설비번호"],[6,8,13],[6,9,13,"작업일자"],[6,10,10],[6,11,14],[6,12,12],[6,13,12],[6,14,12],[6,15,12],[6,16,12],[6,17,10],[7,1,15,"품  번"],[7,2,16],[7,3,17,"작업시간"],[7,4,18],[7,5,19],[7,6,20,"LOT NO"],[7,7,17,"작업 내용"],[7,8,19],[7,9,21,"작업수량(EA)"],[7,10,22],[7,11,23],[7,12,24,"비가동시간(분)"],[7,13,25],[7,14,25],[7,15,25],[7,16,25],[7,17,26],[8,1,27],[8,2,26],[8,3,28],[8,4,25],[8,5,29],[8,6,25],[8,7,28],[8,8,29],[8,9,30,"생산수량"],[8,10,31,"OK"],[8,11,32,"NG"],[8,12,33,"JIG 교체"],[8,13,34,"설비수리"],[8,14,34,"용접수정"],[8,15,34,"3정5S"],[8,16,34,"교육"],[8,17,35,"기     타"],[9,1,36],[9,2,37],[9,3,30,"시작"],[9,4,38],[9,5,39],[9,6,40],[9,7,41],[9,8,42],[9,9,30],[9,10,34],[9,11,43],[9,12,33],[9,13,34],[9,14,34],[9,15,34],[9,16,34],[9,17,44],[10,1,27],[10,2,26],[10,3,30,"종료"],[10,4,38],[10,5,39],[10,6,25],[10,7,28],[10,8,29],[10,9,45],[10,10,7],[10,11,46],[10,12,26],[10,13,7],[10,14,7],[10,15,7],[10,16,7],[10,17,47],[11,1,48],[11,2,49],[11,3,30,"시작"],[11,4,38],[11,5,39],[11,6,40],[11,7,41],[11,8,42],[11,9,30],[11,10,34],[11,11,43],[11,12,33],[11,13,34],[11,14,34],[11,15,34],[11,16,34],[11,17,44],[12,1,27],[12,2,25],[12,3,30,"종료"],[12,4,38],[12,5,39],[12,6,25],[12,7,28],[12,8,29],[12,9,45],[12,10,7],[12,11,46],[12,12,26],[12,13,7],[12,14,7],[12,15,7],[12,16,7],[12,17,47],[13,1,50],[13,2,49],[13,3,30,"시작"],[13,4,38],[13,5,39],[13,6,51],[13,7,41],[13,8,42],[13,9,52],[13,10,53],[13,11,54],[13,12,55],[13,13,53],[13,14,53],[13,15,53],[13,16,53],[13,17,56],[14,1,57],[14,2,58],[14,3,52,"종료"],[14,4,59],[14,5,60],[14,6,58],[14,7,28],[14,8,29],[14,9,61],[14,10,62],[14,11,63],[14,12,64],[14,13,62],[14,14,62],[14,15,62],[14,16,62],[14,17,65],[15,1,66,"하위부품 품번"],[15,2,67],[15,3,68,"LOT (입고일)"],[15,4,69],[15,5,69],[15,6,69],[15,7,69],[15,8,67],[15,9,68,"하위부품 품번"],[15,10,69],[15,11,67],[15,12,70,"LOT (입고일)"],[15,13,69],[15,14,69],[15,15,69],[15,16,69],[15,17,71],[16,1,36],[16,2,72],[16,3,34],[16,4,73],[16,5,73],[16,6,73],[16,7,73],[16,8,72],[16,9,34],[16,10,73],[16,11,72],[16,12,44],[16,13,73],[16,14,73],[16,15,73],[16,16,73],[16,17,74],[17,1,36],[17,2,72],[17,3,34],[17,4,73],[17,5,73],[17,6,73],[17,7,73],[17,8,72],[17,9,34],[17,10,73],[17,11,72],[17,12,44],[17,13,73],[17,14,73],[17,15,73],[17,16,73],[17,17,74],[18,1,36],[18,2,72],[18,3,34],[18,4,73],[18,5,73],[18,6,73],[18,7,73],[18,8,72],[18,9,34],[18,10,73],[18,11,72],[18,12,44],[18,13,73],[18,14,73],[18,15,73],[18,16,73],[18,17,74],[19,1,36],[19,2,72],[19,3,34],[19,4,73],[19,5,73],[19,6,73],[19,7,73],[19,8,72],[19,9,34],[19,10,73],[19,11,72],[19,12,44],[19,13,73],[19,14,73],[19,15,73],[19,16,73],[19,17,74],[20,1,75],[20,2,76],[20,3,53],[20,4,77],[20,5,77],[20,6,77],[20,7,77],[20,8,76],[20,9,53],[20,10,77],[20,11,76],[20,12,56],[20,13,77],[20,14,77],[20,15,77],[20,16,77],[20,17,78],[21,1,1],[21,2,1],[21,3,1],[21,4,1],[21,5,1],[21,6,1],[21,7,1],[21,8,1],[21,9,1],[21,10,1],[21,11,1],[21,12,1],[21,13,1],[21,14,1],[21,15,1],[21,16,1],[21,17,1],[22,1,34,"특이사항"],[22,2,37],[22,3,1],[22,4,1],[22,5,1],[22,6,1],[22,7,1],[22,8,1],[22,9,1],[22,10,34,"참조사항"],[22,11,37],[22,12,1],[22,13,1],[22,14,1],[22,15,1],[22,16,1],[22,17,1],[23,1,79],[23,2,26],[23,3,1],[23,4,1],[23,5,1],[23,6,1],[23,7,1],[23,8,1],[23,9,1],[23,10,79],[23,11,26],[23,12,1],[23,13,1],[23,14,1],[23,15,1],[23,16,1],[23,17,1],[24,1,80],[24,2,49],[24,3,49],[24,4,49],[24,5,49],[24,6,49],[24,7,49],[24,8,49],[24,9,49],[24,10,81,"1. 시업 전 설비 일상점검 후 일상점검표 작성 진행할 것.\n2. 초중종 자주검사 체크시트 작성할 것.\n2. 안전에 유의하며 매뉴얼에 따라 작업할 것.\n3. 작업 전/후 설비 및 JIG 청소 실시할 것.\n4. 불량 및 비가동 작성 기준에 따라 필히 작성할 것.\n5. 부적합 및 이상발생시 현장관리자 및 품질담당자에게 보고할 것.\n6. 부품 LOT 변경에 유의할 것."],[24,11,49],[24,12,49],[24,13,49],[24,14,49],[24,15,49],[24,16,49],[24,17,37],[25,1,82],[25,2,1],[25,3,1],[25,4,1],[25,5,1],[25,6,1],[25,7,1],[25,8,1],[25,9,1],[25,10,82],[25,11,1],[25,12,1],[25,13,1],[25,14,1],[25,15,1],[25,16,1],[25,17,16],[26,1,82],[26,2,1],[26,3,1],[26,4,1],[26,5,1],[26,6,1],[26,7,1],[26,8,1],[26,9,1],[26,10,82],[26,11,1],[26,12,1],[26,13,1],[26,14,1],[26,15,1],[26,16,1],[26,17,16],[27,1,82],[27,2,1],[27,3,1],[27,4,1],[27,5,1],[27,6,1],[27,7,1],[27,8,1],[27,9,1],[27,10,82],[27,11,1],[27,12,1],[27,13,1],[27,14,1],[27,15,1],[27,16,1],[27,17,16],[28,1,82],[28,2,1],[28,3,1],[28,4,1],[28,5,1],[28,6,1],[28,7,1],[28,8,1],[28,9,1],[28,10,82],[28,11,1],[28,12,1],[28,13,1],[28,14,1],[28,15,1],[28,16,1],[28,17,16],[29,1,82],[29,2,1],[29,3,1],[29,4,1],[29,5,1],[29,6,1],[29,7,1],[29,8,1],[29,9,1],[29,10,82],[29,11,1],[29,12,1],[29,13,1],[29,14,1],[29,15,1],[29,16,1],[29,17,16],[30,1,82],[30,2,1],[30,3,1],[30,4,1],[30,5,1],[30,6,1],[30,7,1],[30,8,1],[30,9,1],[30,10,82],[30,11,1],[30,12,1],[30,13,1],[30,14,1],[30,15,1],[30,16,1],[30,17,16],[31,1,79],[31,2,25],[31,3,25],[31,4,25],[31,5,25],[31,6,25],[31,7,25],[31,8,25],[31,9,25],[31,10,79],[31,11,25],[31,12,25],[31,13,25],[31,14,25],[31,15,25],[31,16,25],[31,17,26],[32,1,1],[32,2,1],[32,3,1],[32,4,1],[32,5,1],[32,6,1],[32,7,1],[32,8,83,"㈜ 다  온"],[32,9,1],[32,10,1],[32,11,1],[32,12,1],[32,13,1],[32,14,1],[32,15,1],[32,16,1],[32,17,1]]};
-const wl={equip:[],day:[],dayDate:"",unsubDay:null,date:"",shift:"주",edit:null,last:null,stats:null,statsKey:"",armDone:0,armDel:0,armBack:0,saving:false,inited:false};
+const wl={equip:[],bom:{},day:[],dayDate:"",unsubDay:null,date:"",shift:"주",edit:null,last:null,stats:null,statsKey:"",armDone:0,armDel:0,armBack:0,saving:false,inited:false};
 const shiftName=s=>s==="야"?"야간":"주간";
 const wlId=(date,shift,equipId)=>`${date}_${shift==="야"?"N":"D"}_${equipId}`;
 const numOrNull=v=>{if(v===""||v==null)return null;const n=Number(String(v).replace(/,/g,""));return Number.isFinite(n)&&n>=0?Math.round(n):NaN};
@@ -1119,7 +1145,19 @@ const rate=(ng,prod)=>prod>0?(ng/prod*100).toFixed(2)+"%":"-";
 function minutesBetween(a,b){if(!/^\d{2}:\d{2}$/.test(a||"")||!/^\d{2}:\d{2}$/.test(b||""))return null;const[ah,am]=a.split(":").map(Number),[bh,bm]=b.split(":").map(Number);let d=bh*60+bm-(ah*60+am);if(d<0)d+=1440;return d}
 const downSum=it=>DOWN.reduce((n,[k])=>n+(Number((it.down||{})[k])||0),0);
 function defaultShift(){const d=now(),h=d.getHours();if(h>=DAY_START&&h<NIGHT_START)return{date:fmtDate(d),shift:"주"};if(h<DAY_START){const y=new Date(d);y.setDate(y.getDate()-1);return{date:fmtDate(y),shift:"야"}}return{date:fmtDate(d),shift:"야"}}
-const blankItem=()=>({partNo:"",lot:"",content:"",start:"",end:"",prod:"",ok:"",ng:"",down:{}});
+const blankItem=()=>({partNo:"",lot:"",content:"",start:"",end:"",prod:"",ok:"",ng:"",down:{},_bomFor:""});
+/* 설비구분 */
+const EQ_TYPES=["용접","조립","기타"];
+const typeLabel=t=>EQ_TYPES.includes(t)?t+"설비":"구분 없음";
+const typeCls=t=>({용접:"w",조립:"a",기타:"e"})[t]||"n";
+const typeOrder=t=>{const i=EQ_TYPES.indexOf(t);return i<0?9:i};
+const typePill=t=>`<span class="tpill ${typeCls(t)}">${typeLabel(t)}</span>`;
+function normType(v){v=String(v||"").replace(/\s+/g,"");if(!v)return"";if(/용접|weld/i.test(v))return"용접";if(/조립|assy|assem/i.test(v))return"조립";return"기타"}
+const eqOf=id=>wl.equip.find(e=>e.id===id);
+const normPart=v=>String(v||"").trim().toUpperCase();
+const bomOf=p=>(p&&wl.bom&&Array.isArray(wl.bom[p]))?wl.bom[p]:[];
+const bomText=p=>{const b=bomOf(normPart(p));return b.length?`하위부품 ${b.length}개: ${b.join(", ")} → 아래 하위부품 LOT에 자동으로 들어갑니다`:""};
+const rid=()=>Math.random().toString(36).slice(2,10);
 const blankSub=()=>({partNo:"",lot:""});
 const lineOrder=l=>{const i=st.lines.indexOf(l);return i<0?999:i};
 const eqOrder=id=>{const i=wl.equip.findIndex(e=>e.id===id);return i<0?9999:i};
@@ -1128,7 +1166,8 @@ function allLines(){const s=st.lines.slice();wl.equip.forEach(e=>{if(!s.includes
 function wlInit(){
   if(wl.inited)return;wl.inited=true;
   const d=defaultShift();wl.date=d.date;wl.shift=d.shift;$("#w-date").value=wl.date;setShiftSeg();
-  st.api.watchEquip(list=>{wl.equip=list;renderWlLines();renderBoard();renderEquip()},e=>showBanner("설비 목록을 불러오지 못했습니다: "+st.api.errText(e)));
+  st.api.watchEquip(list=>{wl.equip=list;renderWlLines();renderBoard();renderEquip();if(location.hash==="#wl-edit"&&wl.edit)renderWlEdit()},e=>showBanner("설비 목록을 불러오지 못했습니다: "+st.api.errText(e)));
+  st.api.watchBom(map=>{wl.bom=map||{};renderEquip();renderDatalists()},()=>{});
   watchWlDay();
   statsRange("month");
 }
@@ -1151,6 +1190,7 @@ function renderDatalists(){
   const parts=new Set(st.parts.map(p=>p.partNo)),workers=new Set();
   [wl.day,wl.stats||[]].forEach(arr=>arr.forEach(l=>{(l.items||[]).forEach(it=>{if(it.partNo)parts.add(it.partNo)});if(l.worker)workers.add(l.worker)}));
   if(wl.last){(wl.last.items||[]).forEach(it=>{if(it.partNo)parts.add(it.partNo)});if(wl.last.worker)workers.add(wl.last.worker)}
+  wl.equip.forEach(e=>(e.parts||[]).forEach(p=>parts.add(p)));Object.entries(wl.bom||{}).forEach(([p,subs])=>{parts.add(p);(subs||[]).forEach(x=>parts.add(x))});
   $("#dl-parts").innerHTML=[...parts].sort().map(p=>`<option value="${esc(p)}">`).join("");
   $("#dl-workers").innerHTML=[...workers].sort().map(p=>`<option value="${esc(p)}">`).join("");
 }
@@ -1160,15 +1200,25 @@ function setShiftSeg(){document.querySelectorAll("#w-shift button").forEach(b=>b
 function logStatus(l){return l?(l.status==="done"?"done":"started"):"none"}
 const ST_LABEL={none:["ng","미작성"],started:["warn","작업중"],done:["ok","완료"]};
 function boardData(){
-  const L=$("#w-line").value,logs=wl.day.filter(x=>x.shift===wl.shift);
+  const L=$("#w-line").value,T=$("#w-type").value,logs=wl.day.filter(x=>x.shift===wl.shift);
   const lines=(L?[L]:allLines()).map(line=>{
-    const eqs=wl.equip.filter(e=>e.line===line).map(e=>({eq:e,log:logs.find(x=>x.equipId===e.id)}));
-    logs.filter(x=>x.line===line&&!wl.equip.some(e=>e.id===x.equipId)).forEach(x=>eqs.push({eq:{id:x.equipId,line,no:x.equipNo,gone:true},log:x}));
+    const eqs=wl.equip.filter(e=>e.line===line&&(!T||(e.type||"")===T)).map(e=>({eq:e,log:logs.find(x=>x.equipId===e.id)}));
+    if(!T)logs.filter(x=>x.line===line&&!wl.equip.some(e=>e.id===x.equipId)).forEach(x=>eqs.push({eq:{id:x.equipId,line,no:x.equipNo,gone:true},log:x}));
     return {line,eqs};
   }).filter(g=>g.eqs.length);
   return {lines,logs};
 }
 function countStatus(groups){const c={n:0,none:0,started:0,done:0};groups.forEach(g=>g.eqs.forEach(x=>{if(x.eq.gone&&!x.log)return;c.n++;c[logStatus(x.log)]++}));return c}
+function eqCardHtml({eq,log}){
+  const s=logStatus(log),[pc,pl]=ST_LABEL[s],items=(log&&log.items)||[];
+  const prod=items.reduce((n,it)=>n+(it.prod||0),0),ng=items.reduce((n,it)=>n+(it.ng||0),0),down=items.reduce((n,it)=>n+downSum(it),0);
+  const starts=items.map(it=>it.start).filter(Boolean).sort();
+  return `<button type="button" class="eqcard s-${s}" data-eq="${esc(eq.id)}"${log?` data-log="${esc(log.id)}"`:""}>
+    <span class="no"><span>${esc(eq.no)}</span><span class="pill ${pc}">${pl}</span></span>
+    ${log?`<span class="meta">${esc(log.worker||"작업자 미입력")}${eq.gone?" · 삭제된 설비":""}</span><span class="meta mono">${esc(items.map(it=>it.partNo).filter(Boolean).join(", "))}</span>`:`<span class="meta">${eq.gone?"삭제된 설비":"&nbsp;"}</span>`}
+    ${s==="done"?`<span class="q">생산 ${fmtN(prod)}${ng?` · <span style="color:var(--ng)">NG ${fmtN(ng)}</span>`:""}${down?` · 비가동 ${down}분`:""}</span>`:s==="started"?`<span class="go">${starts[0]?esc(starts[0])+" 시작 · ":""}눌러서 완료수량 입력</span>`:`<span class="go">눌러서 작성</span>`}
+  </button>`;
+}
 function renderBoard(){
   renderHomeWl();
   const box=$("#w-board");if(!box||!wl.date)return;
@@ -1176,24 +1226,21 @@ function renderBoard(){
   $("#w-sum").innerHTML=`<span>${esc(wl.date)} ${shiftName(wl.shift)}</span><span><b>${c.n}</b>대</span><span><b style="color:var(--ok)">${c.done}</b>완료</span><span><b style="color:var(--warn)">${c.started}</b>작업중</span><span><b style="color:${c.none?"var(--ng)":"inherit"}">${c.none}</b>미작성</span>`;
   $("#w-xlsx").disabled=!logs.filter(l=>!$("#w-line").value||l.line===$("#w-line").value).length;
   if(!wl.equip.length&&!logs.length){box.innerHTML=`<div class="panel empty">등록된 설비가 없습니다. <span>${st.admin?"<b>설비·권한</b> 탭에서 작업반별 설비를 추가하세요.":"관리자에게 설비 등록을 요청하세요."}</span></div>`;return}
-  if(!lines.length){box.innerHTML=`<div class="panel empty">이 작업반에 등록된 설비가 없습니다.</div>`;return}
+  if(!lines.length){box.innerHTML=`<div class="panel empty">${$("#w-type").value?`이 작업반에 ${esc(typeLabel($("#w-type").value))}가 없습니다.`:"이 작업반에 등록된 설비가 없습니다."}</div>`;return}
   box.innerHTML=lines.map(g=>{
     const cc=countStatus([g]);
-    return `<div class="linehead"><h3>${esc(g.line)}</h3><span class="progress">완료 <b class="mono">${cc.done}/${cc.n}</b>${cc.started?` · 작업중 ${cc.started}`:""}</span></div>
-    <div class="eqgrid">${g.eqs.map(({eq,log})=>{
-      const s=logStatus(log),[pc,pl]=ST_LABEL[s],items=(log&&log.items)||[];
-      const prod=items.reduce((n,it)=>n+(it.prod||0),0),ng=items.reduce((n,it)=>n+(it.ng||0),0),down=items.reduce((n,it)=>n+downSum(it),0);
-      const starts=items.map(it=>it.start).filter(Boolean).sort();
-      return `<button type="button" class="eqcard s-${s}" data-eq="${esc(eq.id)}"${log?` data-log="${esc(log.id)}"`:""}>
-        <span class="no"><span>${esc(eq.no)}</span><span class="pill ${pc}">${pl}</span></span>
-        ${log?`<span class="meta">${esc(log.worker||"작업자 미입력")}${eq.gone?" · 삭제된 설비":""}</span><span class="meta mono">${esc(items.map(it=>it.partNo).filter(Boolean).join(", "))}</span>`:`<span class="meta">${eq.gone?"삭제된 설비":"&nbsp;"}</span>`}
-        ${s==="done"?`<span class="q">생산 ${fmtN(prod)}${ng?` · <span style="color:var(--ng)">NG ${fmtN(ng)}</span>`:""}${down?` · 비가동 ${down}분`:""}</span>`:s==="started"?`<span class="go">${starts[0]?esc(starts[0])+" 시작 · ":""}눌러서 완료수량 입력</span>`:`<span class="go">눌러서 작성</span>`}
-      </button>`}).join("")}</div>`;
+    const types=[...new Set(g.eqs.map(x=>x.eq.gone?"__gone":(x.eq.type||"")))].sort((a,b)=>(a==="__gone")-(b==="__gone")||typeOrder(a)-typeOrder(b));
+    const showT=types.some(t=>t&&t!=="__gone");
+    const body=types.map(t=>{const xs=g.eqs.filter(x=>(x.eq.gone?"__gone":(x.eq.type||""))===t);const ct=countStatus([{eqs:xs}]);
+      const head=showT?`<div class="typehead">${t==="__gone"?`<span class="tpill n">삭제된 설비</span>`:typePill(t)}<span>${xs.length}대 · 완료 <b class="mono">${ct.done}/${ct.n}</b>${ct.started?` · 작업중 ${ct.started}`:""}</span></div>`:"";
+      return head+`<div class="eqgrid">${xs.map(eqCardHtml).join("")}</div>`}).join("");
+    return `<div class="linehead"><h3>${esc(g.line)}</h3><span class="progress">완료 <b class="mono">${cc.done}/${cc.n}</b>${cc.started?` · 작업중 ${cc.started}`:""}</span></div>${body}`;
   }).join("");
 }
 $("#w-date").addEventListener("change",()=>{if(!$("#w-date").value)return;wl.date=$("#w-date").value;watchWlDay();renderBoard()});
 $("#w-shift").addEventListener("click",e=>{const b=e.target.closest("button[data-s]");if(!b)return;wl.shift=b.dataset.s;setShiftSeg();renderBoard()});
 $("#w-line").addEventListener("change",()=>{ls.set("wl.line",$("#w-line").value);renderBoard()});
+$("#w-type").addEventListener("change",renderBoard);
 $("#w-board").addEventListener("click",e=>{const b=e.target.closest(".eqcard");if(b)openWlEditor(b.dataset.eq,b.dataset.log)});
 $("#w-xlsx").addEventListener("click",async()=>{
   const L=$("#w-line").value,logs=wl.day.filter(l=>l.shift===wl.shift&&(!L||l.line===L)).sort(byLineEq);
@@ -1216,7 +1263,7 @@ function renderHomeWeld(){
 
 /* ---------- 작업일보 입력 ---------- */
 function cloneLog(l){
-  const items=(l.items&&l.items.length?l.items:[blankItem()]).map(it=>({partNo:it.partNo||"",lot:it.lot||"",content:it.content||"",start:it.start||"",end:it.end||"",prod:it.prod??"",ok:it.ok??"",ng:it.ng??"",down:Object.fromEntries(DOWN.map(([k])=>[k,(it.down&&it.down[k])||""])),_okManual:it.ok!=null&&it.ok!==""}));
+  const items=(l.items&&l.items.length?l.items:[blankItem()]).map(it=>({partNo:it.partNo||"",lot:it.lot||"",content:it.content||"",start:it.start||"",end:it.end||"",prod:it.prod??"",ok:it.ok??"",ng:it.ng??"",down:Object.fromEntries(DOWN.map(([k])=>[k,(it.down&&it.down[k])||""])),_okManual:it.ok!=null&&it.ok!=="",_bomFor:normPart(it.partNo)}));
   const subs=(l.subs||[]).map(s=>({partNo:s.partNo||"",lot:s.lot||""}));while(subs.length<2)subs.push(blankSub());
   return {_new:false,id:l.id,date:l.date,shift:l.shift,line:l.line,equipId:l.equipId,equipNo:l.equipNo,worker:l.worker||"",writer:l.writer||"",items,subs,notes:l.notes||"",status:l.status||"started",by:l.by,createdAtMs:l.createdAtMs,updatedAtMs:l.updatedAtMs,updatedByName:l.updatedByName||""};
 }
@@ -1238,8 +1285,9 @@ function renderWlEdit(){
   const E=wl.edit,box=$("#we-body");if(!E){box.innerHTML="";return}
   const [pc,pl]=ST_LABEL[E._new?"none":E.status==="done"?"done":"started"];
   const ro=(lab,v)=>`<div class="field"><span class="label">${lab}</span><div class="ro">${v}</div></div>`;
+  const curEq=eqOf(E.equipId),eqParts=(curEq&&curEq.parts)||[];
   let h=`<div class="panel">
-    <div class="ihead"><h2>${esc(E.line)} · <span class="mono">${esc(E.equipNo)}</span></h2><span class="pill ${pc}">${E._new?"새로 작성":pl}</span></div>
+    <div class="ihead"><h2>${esc(E.line)} · <span class="mono">${esc(E.equipNo)}</span>${curEq&&curEq.type?typePill(curEq.type):""}</h2><span class="pill ${pc}">${E._new?"새로 작성":pl}</span></div>
     <div class="fields">
       ${ro("작업일자 · 근무",`${esc(E.date)} (${shiftName(E.shift)})`)}
       <label class="field"><span class="label">작업자</span>${inp(`data-f="worker" list="dl-workers" placeholder="이름" autocomplete="off" maxlength="30"`,E.worker)}</label>
@@ -1257,6 +1305,8 @@ function renderWlEdit(){
         <label class="field"><span class="label">작업 내용</span>${inp(`data-f="content" data-i="${i}" placeholder="예: SPOT 용접" maxlength="60"`,it.content)}</label>
         <div class="field"><span class="label">작업 시작</span><div class="tin">${inp(`type="time" data-f="start" data-i="${i}"`,it.start)}<button type="button" data-now="start" data-i="${i}">지금</button></div></div>
       </div>
+      ${eqParts.length?`<div class="chips"><span class="label">이 설비 생산품번</span>${eqParts.map(p=>`<button type="button" class="chip${normPart(it.partNo)===p?" on":""}" data-pick="${esc(p)}" data-i="${i}">${esc(p)}</button>`).join("")}</div>`:""}
+      <div class="bomhint" id="bh-${i}"${bomOf(normPart(it.partNo)).length?"":" hidden"}>${esc(bomText(it.partNo))}</div>
       <div class="phase">작업 종료 후 입력<span>완료수량 · 비가동</span></div>
       <div class="fields">
         <div class="field"><span class="label">작업 종료</span><div class="tin">${inp(`type="time" data-f="end" data-i="${i}"`,it.end)}<button type="button" data-now="end" data-i="${i}">지금</button></div></div>
@@ -1272,10 +1322,7 @@ function renderWlEdit(){
     </div>`;
   });
   if(E.items.length<MAX_ITEMS)h+=`<button class="btn" type="button" data-act="additem">+ 품번 추가 (양식 최대 ${MAX_ITEMS}개)</button>`;
-  h+=`<div class="panel"><h2>하위부품 LOT</h2>
-    ${E.subs.map((s,i)=>`<div class="subrow"><span class="n">${i+1}</span>${inp(`data-f="partNo" data-s="${i}" class="mono" placeholder="하위부품 품번" list="dl-parts" autocapitalize="characters" autocomplete="off" maxlength="40" aria-label="하위부품 ${i+1} 품번"`,s.partNo)}${inp(`data-f="lot" data-s="${i}" class="mono" placeholder="LOT (입고일)" maxlength="40" aria-label="하위부품 ${i+1} LOT"`,s.lot)}<button class="xbtn" type="button" data-act="rmsub" data-s="${i}" aria-label="${i+1}번 줄 지우기">×</button></div>`).join("")}
-    ${E.subs.length<MAX_SUBS?`<div class="row"><button class="btn small" type="button" data-act="addsub">+ 하위부품 줄 추가</button></div>`:""}
-  </div>
+  h+=`<div class="panel" id="we-subs">${subsHtml(E)}  </div>
   <div class="panel">
     <label class="field"><span class="label">특이사항</span><textarea data-f="notes" maxlength="1000" placeholder="불량·이상발생, 설비 문제 등">${esc(E.notes)}</textarea></label>
     <details class="ref"><summary>참조사항</summary><ol>${REF_NOTES.map(t=>`<li>${esc(t)}</li>`).join("")}</ol></details>
@@ -1285,6 +1332,9 @@ function renderWlEdit(){
   E.items.forEach((_,i)=>updateCalc(i));
   updateWlButtons();
 }
+function subsHtml(E){return `<h2>하위부품 LOT</h2><div class="progress">생산품번에 하위부품이 등록돼 있으면 품번을 고를 때 자동으로 채워집니다. LOT(입고일)만 입력하세요.</div>
+    ${E.subs.map((s,i)=>`<div class="subrow"><span class="n">${i+1}</span>${inp(`data-f="partNo" data-s="${i}" class="mono" placeholder="하위부품 품번" list="dl-parts" autocapitalize="characters" autocomplete="off" maxlength="40" aria-label="하위부품 ${i+1} 품번"`,s.partNo)}${inp(`data-f="lot" data-s="${i}" class="mono" placeholder="LOT (입고일)" maxlength="40" aria-label="하위부품 ${i+1} LOT"`,s.lot)}<button class="xbtn" type="button" data-act="rmsub" data-s="${i}" aria-label="${i+1}번 줄 지우기">×</button></div>`).join("")}
+    ${E.subs.length<MAX_SUBS?`<div class="row"><button class="btn small" type="button" data-act="addsub">+ 하위부품 줄 추가</button></div>`:""}`}
 function updateCalc(i){
   const it=wl.edit.items[i],el=$("#calc-"+i);if(!el)return;
   const w=minutesBetween(it.start,it.end),d=DOWN.reduce((n,[k])=>n+(numOrNull(it.down[k])||0),0),p=numOrNull(it.prod),o=numOrNull(it.ok),g=numOrNull(it.ng);
@@ -1319,13 +1369,15 @@ $("#v-wl-edit").addEventListener("click",async e=>{
   const E=wl.edit;if(!E)return;
   const nb=e.target.closest("[data-now]");
   if(nb){const i=+nb.dataset.i,f=nb.dataset.now,v=fmtTime(now()).slice(0,5);E.items[i][f]=v;const el=document.querySelector(`input[data-f="${f}"][data-i="${i}"]`);if(el)el.value=v;E._dirty=true;updateCalc(i);updateWlButtons();return}
+  const pk=e.target.closest("[data-pick]");
+  if(pk){const i=+pk.dataset.i,it=E.items[i];if(!it)return;it.partNo=pk.dataset.pick;E._dirty=true;const inpEl=document.querySelector(`input[data-f="partNo"][data-i="${i}"]`);if(inpEl)inpEl.value=it.partNo;refreshPartUi(i,applyBom(i));return}
   const b=e.target.closest("[data-act]");if(!b)return;const a=b.dataset.act;
   if(a==="additem"&&E.items.length<MAX_ITEMS){E.items.push(blankItem());E._dirty=true;renderWlEdit();return}
   if(a==="rmitem"){if(b.textContent!=="한 번 더 누르면 빠짐"){b.textContent="한 번 더 누르면 빠짐";setTimeout(()=>{if(b.isConnected)b.textContent="이 품번 빼기"},3000);return}E.items.splice(+b.dataset.i,1);E._dirty=true;renderWlEdit();return}
   if(a==="addsub"&&E.subs.length<MAX_SUBS){E.subs.push(blankSub());renderWlEdit();return}
   if(a==="rmsub"){const i=+b.dataset.s;if(E.subs.length>1)E.subs.splice(i,1);else E.subs[0]=blankSub();E._dirty=true;renderWlEdit();return}
   if(a==="loadlast"&&wl.last){const L=wl.last;E.worker=L.worker||E.worker;
-    E.items=(L.items&&L.items.length?L.items:[{}]).slice(0,MAX_ITEMS).map(x=>Object.assign(blankItem(),{partNo:x.partNo||"",lot:x.lot||"",content:x.content||""}));
+    E.items=(L.items&&L.items.length?L.items:[{}]).slice(0,MAX_ITEMS).map(x=>Object.assign(blankItem(),{partNo:x.partNo||"",lot:x.lot||"",content:x.content||"",_bomFor:normPart(x.partNo)}));
     E.subs=(L.subs||[]).slice(0,MAX_SUBS).map(s=>({partNo:s.partNo||"",lot:s.lot||""}));while(E.subs.length<2)E.subs.push(blankSub());
     E._dirty=true;renderWlEdit();toast("지난 작업 내용을 불러왔습니다. LOT가 바뀌었는지 꼭 확인하세요");return}
   if(a==="xlsx"){const log=wl.day.find(x=>x.id===E.id)||(wl.stats||[]).find(x=>x.id===E.id);if(!log){toast("저장된 일보가 없습니다");return}
@@ -1333,6 +1385,32 @@ $("#v-wl-edit").addEventListener("click",async e=>{
   if(a==="del"&&st.admin){if(Date.now()-wl.armDel>3000){wl.armDel=Date.now();b.textContent="한 번 더 누르면 삭제";return}
     try{await st.api.delWl(E.id);toast("작업일보를 삭제했습니다");wl.edit=null;location.hash="#wl"}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}return}
 });
+/* 생산품번을 고르면 등록된 하위부품 품번을 하위부품 LOT 칸에 채움 (LOT이 비어 있는 이전 품번의 하위부품은 정리) */
+function applyBom(i){
+  const E=wl.edit,it=E&&E.items[i];if(!it)return false;
+  const prev=it._bomFor||"",cur=normPart(it.partNo);if(prev===cur)return false;
+  it._bomFor=cur;const before=JSON.stringify(E.subs);
+  const need=new Set();E.items.forEach(x=>bomOf(normPart(x.partNo)).forEach(p=>need.add(p)));
+  const drop=new Set(bomOf(prev).filter(p=>!need.has(p)));
+  E.subs=E.subs.filter(x=>!(drop.has(normPart(x.partNo))&&!x.lot.trim()));
+  const have=new Set(E.subs.map(x=>normPart(x.partNo)).filter(Boolean));
+  let added=0,over=0;
+  bomOf(cur).forEach(p=>{if(have.has(p))return;have.add(p);const slot=E.subs.find(x=>!x.partNo.trim()&&!x.lot.trim());if(slot){slot.partNo=p;added++}else if(E.subs.length<MAX_SUBS){E.subs.push({partNo:p,lot:""});added++}else over++});
+  while(E.subs.length<2)E.subs.push(blankSub());
+  E._dirty=true;
+  const changed=before!==JSON.stringify(E.subs);
+  if(over)toast(`하위부품 칸(최대 ${MAX_SUBS}줄)이 모자라 ${over}개를 넣지 못했습니다`);else if(added)toast(`하위부품 ${added}개를 채웠습니다. LOT을 입력하세요`);
+  return changed;
+}
+/* 품번 칸만 바뀐 경우: 전체를 다시 그리지 않고 품번 버튼·안내·하위부품 칸만 갱신 (입력 중인 다른 칸·버튼 누름이 끊기지 않게) */
+function refreshPartUi(i,subsChanged){
+  const E=wl.edit,it=E&&E.items[i];if(!it)return;
+  document.querySelectorAll(`[data-pick][data-i="${i}"]`).forEach(b=>b.classList.toggle("on",b.dataset.pick===normPart(it.partNo)));
+  const bh=$("#bh-"+i);if(bh){const t=bomText(it.partNo);bh.textContent=t;bh.hidden=!t}
+  if(subsChanged){const sp=$("#we-subs");if(sp)sp.innerHTML=subsHtml(E)}
+  updateWlButtons();
+}
+$("#v-wl-edit").addEventListener("change",e=>{const t=e.target;if(t.dataset.f!=="partNo"||t.dataset.i==null||!wl.edit)return;const i=+t.dataset.i;if(!wl.edit.items[i])return;wl.edit.items[i].partNo=t.value;refreshPartUi(i,applyBom(i))});
 $("#we-back").addEventListener("click",e=>{
   const E=wl.edit;if(E&&E._dirty&&Date.now()-wl.armBack>3000){wl.armBack=Date.now();e.target.textContent="저장 안 하고 나가기";setTimeout(()=>e.target.textContent="목록",3000);return}
   e.target.textContent="목록";wl.edit=null;location.hash="#wl";
@@ -1515,26 +1593,34 @@ async function exportForms(logs,fname){
 /* ---------- 설비 관리 ---------- */
 function renderEquip(){
   const box=$("#eqList");if(!box)return;$("#eqAdd").hidden=!st.admin;
-  $("#eqNote").textContent=st.admin?"설비 현황 화면에 여기 등록된 설비가 카드로 나타납니다. 삭제해도 지난 일보와 실적은 그대로 남습니다.":"설비는 관리자만 추가·삭제할 수 있습니다.";
+  $("#eqNote").textContent=st.admin?"설비 현황 화면에 여기 등록된 설비가 작업반 · 설비구분별로 나타납니다. 삭제해도 지난 일보와 실적은 그대로 남습니다.":"설비는 관리자만 추가·삭제할 수 있습니다.";
   const lines=wlLock()?[wlLock()]:allLines().filter(l=>wl.equip.some(e=>e.line===l)||st.lines.includes(l));
-  box.innerHTML=lines.map(l=>{const eqs=wl.equip.filter(e=>e.line===l);
-    return `<div><div class="label" style="margin-bottom:4px">${esc(l)} · ${eqs.length}대</div><div class="plist">${eqs.length?eqs.map(e=>`<div class="pitem"><span class="pn">${esc(e.no)}</span>${st.admin?`<div class="row"><button class="btn small" type="button" data-up="${esc(e.id)}" aria-label="위로">↑</button><button class="btn small danger" type="button" data-rmeq="${esc(e.id)}">삭제</button></div>`:""}</div>`).join(""):`<div class="progress">등록된 설비 없음</div>`}</div></div>`}).join("")||`<div class="empty">등록된 설비가 없습니다.</div>`;
+  box.innerHTML=lines.map(l=>{
+    const eqs=wl.equip.filter(e=>e.line===l).slice().sort((a,b)=>typeOrder(a.type||"")-typeOrder(b.type||""));
+    const cnt=EQ_TYPES.map(t=>[t,eqs.filter(e=>e.type===t).length]).filter(x=>x[1]).map(([t,n])=>`${t} ${n}`).join(" · ");
+    return `<div><div class="label" style="margin-bottom:4px">${esc(l)} · ${eqs.length}대${cnt?` (${cnt})`:""}</div><div class="plist">${eqs.length?eqs.map(e=>`<div class="pitem eqrow"><div class="eqinfo"><div><span class="pn">${esc(e.no)}</span> ${typePill(e.type)}</div><div class="progress mono">${(e.parts||[]).length?esc(e.parts.map(p=>p+(bomOf(p).length?`(하위 ${bomOf(p).length})`:"")).join(", ")):"생산품번 미지정"}</div></div>${st.admin?`<div class="row"><select class="tsel" data-settype="${esc(e.id)}" aria-label="${esc(e.no)} 설비구분">${["",...EQ_TYPES].map(t=>`<option value="${t}"${(e.type||"")===t?" selected":""}>${t?t+"설비":"구분 없음"}</option>`).join("")}</select><button class="btn small" type="button" data-up="${esc(e.id)}" aria-label="위로">↑</button><button class="btn small danger" type="button" data-rmeq="${esc(e.id)}">삭제</button></div>`:""}</div>`).join(""):`<div class="progress">등록된 설비 없음</div>`}</div></div>`}).join("")||`<div class="empty">등록된 설비가 없습니다.</div>`;
+  const nb=$("#bomNote");if(nb){const n=Object.keys(wl.bom||{}).length,ns=Object.values(wl.bom||{}).reduce((a,x)=>a+(x||[]).length,0),np=wl.equip.filter(e=>(e.parts||[]).length).length;nb.textContent=`현재 등록: 생산품번이 지정된 설비 ${np}대 · 하위부품이 등록된 생산품번 ${n}개(하위부품 ${ns}건)`}
 }
 $("#eqList").addEventListener("click",async e=>{
   if(!st.admin)return;
   const up=e.target.closest("[data-up]");
-  if(up){const list=wl.equip.slice(),i=list.findIndex(x=>x.id===up.dataset.up);if(i<0)return;let j=i-1;while(j>=0&&list[j].line!==list[i].line)j--;if(j<0)return;[list[i],list[j]]=[list[j],list[i]];try{await st.api.setEquip(list)}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}return}
+  if(up){const list=wl.equip.slice(),i=list.findIndex(x=>x.id===up.dataset.up);if(i<0)return;let j=i-1;while(j>=0&&(list[j].line!==list[i].line||(list[j].type||"")!==(list[i].type||"")))j--;if(j<0)return;[list[i],list[j]]=[list[j],list[i]];try{await st.api.setEquip(list)}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}return}
   const b=e.target.closest("[data-rmeq]");if(!b)return;
   if(b.textContent!=="확인"){b.textContent="확인";setTimeout(()=>{if(b.isConnected)b.textContent="삭제"},3000);return}
   try{await st.api.setEquip(wl.equip.filter(x=>x.id!==b.dataset.rmeq));toast("설비를 삭제했습니다 (지난 일보는 그대로 남습니다)")}catch(err){toast("삭제하지 못했습니다: "+st.api.errText(err))}
+});
+$("#eqList").addEventListener("change",async e=>{
+  const sel=e.target.closest("[data-settype]");if(!sel||!st.admin)return;
+  const list=wl.equip.map(x=>x.id===sel.dataset.settype?Object.assign({},x,{type:sel.value}):x);
+  try{await st.api.setEquip(list);toast("설비구분을 바꿨습니다")}catch(err){toast("저장하지 못했습니다: "+st.api.errText(err))}
 });
 $("#eq-add").addEventListener("click",async()=>{
   const line=$("#eq-line").value,nos=$("#eq-no").value.split(/[,，\n]/).map(s=>s.trim().replace(/\s+/g," ")).filter(Boolean);
   if(!line){toast("작업반을 고르세요");return}if(!nos.length){toast("설비번호를 입력하세요");return}
   const bad=nos.find(n=>n.length>20);if(bad){toast("설비번호는 20자 이내로 입력하세요");return}
   const dup=nos.find((n,i)=>nos.indexOf(n)!==i||wl.equip.some(e=>e.line===line&&e.no===n));if(dup){toast(`${dup}: 이미 있는 설비입니다`);return}
-  const add=nos.map(no=>({id:Math.random().toString(36).slice(2,10),line,no}));
-  try{await st.api.setEquip(wl.equip.concat(add));$("#eq-no").value="";ls.set("wl.line",line);toast(`${line}에 ${nos.length}대 추가`)}catch(e){toast("추가하지 못했습니다: "+st.api.errText(e))}
+  const type=$("#eq-type").value,add=nos.map(no=>({id:rid(),line,no,type,parts:[]}));
+  try{await st.api.setEquip(wl.equip.concat(add));$("#eq-no").value="";ls.set("wl.line",line);toast(`${line}에 ${typeLabel(type)} ${nos.length}대 추가`)}catch(e){toast("추가하지 못했습니다: "+st.api.errText(e))}
 });
 
 /* ---------- 설비 엑셀 일괄 등록 ---------- */
@@ -1551,33 +1637,65 @@ function parseCsv(text){
   if(cell||row.length){row.push(cell);rows.push(row)}
   return rows;
 }
-function rowsToEquip(rows){
-  rows=rows.map(r=>(r||[]).map(c=>cellText(c).replace(/^﻿/,"").trim().replace(/\s+/g," ")));
-  const isLine=c=>/작업\s*반|^반$|라인|^line$/i.test(c),isEq=c=>/설비|^equip/i.test(c);
-  let li=0,ni=1,start=0;
+/* 양식: 작업반 | 설비번호 | 설비구분 | 생산품번 | 하위부품품번 (빈 칸은 위 줄 값) */
+function rowsToMaster(rows){
+  rows=rows.map(r=>(r||[]).map(c=>cellText(c).replace(/^\uFEFF/,"").trim().replace(/\s+/g," ")));
+  const isLine=c=>/작업\s*반|^반$|라인|^line$/i.test(c),isEq=c=>(/설비/.test(c)&&!/구분|종류|유형/.test(c))||/^equip/i.test(c),isType=c=>/구분|종류|유형|type/i.test(c),isSub=c=>/하위|sub|자품번/i.test(c),isPart=c=>/품번|part/i.test(c)&&!/하위|sub|자품번/i.test(c);
+  let ci={line:0,no:1,type:2,part:3,sub:4},start=0;
   const hi=rows.findIndex(r=>r.some(isLine)&&r.some(isEq));
-  if(hi>=0){li=rows[hi].findIndex(isLine);ni=rows[hi].findIndex(isEq);start=hi+1}
-  const out=[];let cur="";
-  rows.slice(start).forEach(r=>{const l=r[li]||"";if(l)cur=l;(r[ni]||"").split(/[,，]/).map(s=>s.trim()).filter(Boolean).forEach(no=>out.push({line:cur,no}))});
-  return out;
+  if(hi>=0){const h=rows[hi],f=fn=>h.findIndex(fn);ci={line:f(isLine),no:f(isEq),type:f(isType),part:f(isPart),sub:f(isSub)};start=hi+1}
+  const g=(r,k)=>ci[k]>=0?(r[ci[k]]||""):"";
+  const eqMap=new Map(),bom=new Map(),errs=[];const cur={line:"",no:"",type:"",part:""};
+  const touch=(line,no)=>{const k=line+"\u0001"+no;let e=eqMap.get(k);if(!e){e={line,no,type:"",parts:[]};eqMap.set(k,e)}return e};
+  rows.slice(start).forEach((r,ri)=>{
+    const rowNo=start+ri+1,L=g(r,"line"),N=g(r,"no"),T=g(r,"type"),P=normPart(g(r,"part")),S=g(r,"sub");
+    if(!L&&!N&&!T&&!P&&!S)return;
+    if((N&&N!==cur.no)||(L&&L!==cur.line)){cur.part="";cur.type=""}
+    if(L)cur.line=L;
+    if(N){const nos=N.split(/[,，]/).map(x=>x.trim()).filter(Boolean);
+      if(nos.length>1){if(!cur.line){errs.push(`${rowNo}행: 작업반 없음`);return}nos.forEach(no=>{const e=touch(cur.line,no);if(T)e.type=normType(T)});cur.no="";return}
+      cur.no=nos[0]||""}
+    if(T)cur.type=T;
+    if(P)cur.part=P;
+    if(cur.no){
+      if(!cur.line){errs.push(`${rowNo}행 ${cur.no}: 작업반 없음`);return}
+      if(cur.line.length>20||cur.no.length>20){errs.push(`${rowNo}행: 작업반·설비번호 20자 넘음`);return}
+      const e=touch(cur.line,cur.no);if(cur.type)e.type=normType(cur.type);
+      if(cur.part&&!e.parts.includes(cur.part))e.parts.push(cur.part);
+    }
+    if(S){
+      if(!cur.part){errs.push(`${rowNo}행: 생산품번 없이 하위부품(${S})만 있음`);return}
+      const subs=S.split(/[,，]/).map(normPart).filter(Boolean);
+      if(!bom.has(cur.part))bom.set(cur.part,[]);const b=bom.get(cur.part);subs.forEach(x=>{if(x!==cur.part&&!b.includes(x))b.push(x)});
+    }
+  });
+  [...eqMap.values()].forEach(e=>{e.parts=e.parts.filter(p=>p.length<=40)});
+  return {eqs:[...eqMap.values()],bom,errs};
 }
-function prepEquipImport(items){
-  const errs=[],add=[],seen=new Set();let dup=0;
-  items.forEach(({line,no})=>{
-    if(!line){errs.push(`${no}: 작업반이 비어 있음`);return}
-    if(line.length>20||no.length>20){errs.push(`${line} ${no}: 20자 넘음`);return}
-    const k=line+"\u0001"+no;if(seen.has(k)||wl.equip.some(e=>e.line===line&&e.no===no)){dup++;return}
-    seen.add(k);add.push({line,no})});
-  const newLines=[...new Set(add.map(a=>a.line))].filter(l=>!st.lines.includes(l));
-  eqImport={add,newLines};
-  const byLine={};add.forEach(a=>{byLine[a.line]=(byLine[a.line]||0)+1});
+function prepMasterImport(m){
+  const list=wl.equip.map(e=>Object.assign({},e));let newEq=0,typeCh=0,partsCh=0;
+  m.eqs.forEach(e=>{const ex=list.find(x=>x.line===e.line&&x.no===e.no);
+    if(!ex){list.push({id:rid(),line:e.line,no:e.no,type:e.type||"",parts:e.parts});newEq++;return}
+    if(e.type&&(ex.type||"")!==e.type){ex.type=e.type;typeCh++}
+    if(e.parts.length&&JSON.stringify(ex.parts||[])!==JSON.stringify(e.parts)){ex.parts=e.parts;partsCh++}});
+  const bom=Object.assign({},wl.bom||{});let bomAdd=0,bomCh=0;
+  m.bom.forEach((subs,p)=>{if(!bom[p])bomAdd++;else if(JSON.stringify(bom[p])!==JSON.stringify(subs))bomCh++;else return;bom[p]=subs});
+  const newLines=[...new Set(m.eqs.map(e=>e.line))].filter(l=>!st.lines.includes(l));
+  const eqChanged=newEq+typeCh+partsCh>0,bomChanged=bomAdd+bomCh>0;
+  eqImport={list,bom,newLines,eqChanged,bomChanged};
+  const byLine={};list.slice(wl.equip.length).forEach(a=>{byLine[a.line]=(byLine[a.line]||0)+1});
+  const nParts=m.eqs.reduce((a,e)=>a+e.parts.length,0),nSubs=[...m.bom.values()].reduce((a,x)=>a+x.length,0);
+  const any=eqChanged||bomChanged;
   $("#eq-preview").innerHTML=`<div class="help" style="background:var(--sunk);color:var(--fg)">
-    ${add.length?`<div><b>새로 등록 ${add.length}대</b> · ${Object.entries(byLine).map(([l,n])=>`${esc(l)} ${n}대`).join(" · ")}</div>
-    <div class="mono" style="font-size:12px;color:var(--muted)">${esc(add.slice(0,30).map(a=>a.no).join(", "))}${add.length>30?` 외 ${add.length-30}대`:""}</div>`:`<div><b>새로 등록할 설비가 없습니다.</b></div>`}
+    <div>파일 내용: 설비 ${m.eqs.length}대 · 생산품번 지정 ${nParts}건 · 하위부품 ${nSubs}건 (생산품번 ${m.bom.size}개)</div>
+    ${newEq?`<div><b>새 설비 ${newEq}대</b> · ${Object.entries(byLine).map(([l,n])=>`${esc(l)} ${n}대`).join(" · ")}</div>`:""}
+    ${typeCh?`<div>설비구분 변경 ${typeCh}대</div>`:""}
+    ${partsCh?`<div>생산품번 목록 변경 ${partsCh}대 (파일 내용으로 바뀜)</div>`:""}
+    ${bomAdd||bomCh?`<div>하위부품: 새 생산품번 ${bomAdd}개${bomCh?` · 바뀐 생산품번 ${bomCh}개`:""}</div>`:""}
     ${newLines.length?`<div><span class="pill warn">새 작업반</span> ${esc(newLines.join(", "))} — 작업반 목록에도 추가됩니다 (파괴검사와 공용)</div>`:""}
-    ${dup?`<div>이미 있는 설비 ${dup}대는 건너뜁니다.</div>`:""}
-    ${errs.length?`<div style="color:var(--ng)">제외 ${errs.length}건: ${esc(errs.slice(0,5).join(" / "))}${errs.length>5?" …":""}</div>`:""}
-    <div class="row">${add.length?`<button class="btn small primary" type="button" id="eq-commit">${add.length}대 등록</button>`:""}<button class="btn small" type="button" id="eq-cancel">취소</button></div></div>`;
+    ${!any?`<div><b>바뀌는 내용이 없습니다.</b> 이미 같은 내용으로 등록돼 있습니다.</div>`:""}
+    ${m.errs.length?`<div style="color:var(--ng)">제외 ${m.errs.length}건: ${esc(m.errs.slice(0,5).join(" / "))}${m.errs.length>5?" …":""}</div>`:""}
+    <div class="row">${any?`<button class="btn small primary" type="button" id="eq-commit">저장</button>`:""}<button class="btn small" type="button" id="eq-cancel">취소</button></div></div>`;
 }
 $("#eq-file").addEventListener("change",async e=>{
   const f=e.target.files&&e.target.files[0];e.target.value="";if(!f||!st.admin)return;
@@ -1593,31 +1711,40 @@ $("#eq-file").addEventListener("change",async e=>{
       try{text=new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(_){text=new TextDecoder("euc-kr").decode(buf)}
       rows=parseCsv(text);
     }else throw new Error("엑셀(.xlsx) 또는 CSV 파일만 올릴 수 있습니다 (.xls는 엑셀에서 .xlsx로 다시 저장)");
-    const items=rowsToEquip(rows);
-    if(!items.length){$("#eq-preview").innerHTML=`<div class="help">파일에서 설비를 찾지 못했습니다. A열에 작업반, B열에 설비번호를 넣어 주세요.</div>`;eqImport=null;return}
-    prepEquipImport(items);
+    const m=rowsToMaster(rows);
+    if(!m.eqs.length&&!m.bom.size){$("#eq-preview").innerHTML=`<div class="help">파일에서 설비나 품번을 찾지 못했습니다. 양식을 내려받아 A열 작업반, B열 설비번호, C열 설비구분, D열 생산품번, E열 하위부품품번 순서로 적어 주세요.${m.errs.length?"<br>"+esc(m.errs.slice(0,3).join(" / ")):""}</div>`;eqImport=null;return}
+    prepMasterImport(m);
   }catch(err){eqImport=null;$("#eq-preview").innerHTML=`<div class="help">파일을 읽지 못했습니다: ${esc(err.message||err)}</div>`}
 });
 $("#eq-preview").addEventListener("click",async e=>{
   if(e.target.id==="eq-cancel"){eqImport=null;$("#eq-preview").innerHTML="";return}
   if(e.target.id!=="eq-commit"||!eqImport||!st.admin)return;
-  const b=e.target;b.disabled=true;b.textContent="등록 중…";
+  const b=e.target;b.disabled=true;b.textContent="저장 중…";
   try{
-    const {add,newLines}=eqImport;
+    const {list,bom,newLines,eqChanged,bomChanged}=eqImport;
     if(newLines.length){await st.api.setLines(st.lines.concat(newLines));st.lines=st.lines.concat(newLines.filter(l=>!st.lines.includes(l)));renderLineSelects();renderLines();renderWlLines()}
-    await st.api.setEquip(wl.equip.concat(add.map(a=>({id:Math.random().toString(36).slice(2,10),line:a.line,no:a.no}))));
-    eqImport=null;$("#eq-preview").innerHTML="";toast(`설비 ${add.length}대를 등록했습니다`);
-  }catch(err){b.disabled=false;b.textContent="다시 등록";toast("등록하지 못했습니다: "+st.api.errText(err))}
+    if(bomChanged)await st.api.setBom(bom);
+    if(eqChanged)await st.api.setEquip(list);
+    eqImport=null;$("#eq-preview").innerHTML="";toast("설비 · 생산품번 · 하위부품을 저장했습니다");
+  }catch(err){b.disabled=false;b.textContent="다시 저장";toast("저장하지 못했습니다: "+st.api.errText(err))}
 });
 $("#eq-tpl").addEventListener("click",async()=>{
   if(!window.ExcelJS){toast("엑셀 모듈을 불러오지 못했습니다. 새로고침 후 다시 시도하세요");return}
-  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("설비목록");
-  ws.columns=[{width:16},{width:20},{width:44}];
-  const head=["작업반","설비번호","(참고) 작업반 칸이 비면 위 줄 작업반으로 봅니다"];
-  head.forEach((h,i)=>{const c=ws.getCell(1,i+1);c.value=h;c.font={bold:true};if(i<2)c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE8ECF0"}}});
-  const rows=wl.equip.length?wl.equip.map(e=>[e.line,e.no]):(st.lines.length?st.lines:["용접1반"]).slice(0,2).flatMap(l=>[[l,"SPOT-01"],["","SPOT-02"]]);
-  rows.forEach((r,i)=>{ws.getCell(i+2,1).value=r[0];ws.getCell(i+2,2).value=r[1]});
-  try{await downloadWb(wb,"설비목록_양식.xlsx");toast(wl.equip.length?"현재 설비 목록을 내려받았습니다. 아래에 새 설비를 이어 적어 올리세요":"양식을 내려받았습니다 (예시 줄은 지우고 쓰세요)")}catch(err){toast("양식을 만들지 못했습니다: "+(err.message||err))}
+  const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet("설비·품번");
+  ws.columns=[{width:14},{width:16},{width:12},{width:22},{width:22},{width:56}];
+  const head=["작업반","설비번호","설비구분","생산품번","하위부품품번","(참고) 빈 칸은 위 줄 값 · 설비구분: 용접설비/조립설비/기타설비 · 하위부품은 한 줄에 하나 또는 쉼표로"];
+  head.forEach((h,i)=>{const c=ws.getCell(1,i+1);c.value=h;c.font={bold:true};if(i<5)c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE8ECF0"}}});
+  const rows=[];
+  const eqs=wl.equip.slice().sort((a,b)=>lineOrder(a.line)-lineOrder(b.line)||a.line.localeCompare(b.line)||typeOrder(a.type||"")-typeOrder(b.type||"")||eqOrder(a.id)-eqOrder(b.id));
+  eqs.forEach(e=>{const t=e.type?typeLabel(e.type):"",ps=e.parts||[];
+    if(!ps.length){rows.push([e.line,e.no,t,"",""]);return}
+    ps.forEach(p=>{const subs=bomOf(p);if(!subs.length)rows.push([e.line,e.no,t,p,""]);else subs.forEach(x=>rows.push([e.line,e.no,t,p,x]))})});
+  const sample=!rows.length;
+  if(sample){const l1=st.lines[0]||"용접1반",l2=st.lines[1]||"조립1반";rows.push([l1,"SPOT-01","용접설비","88415-MX560","88416-AA100"],["","","","","88417-BB200"],["","","","65110-AB100","65111-XX200"],["","SPOT-02","용접설비","88415-MX560",""],[l2,"ASSY-01","조립설비","89100-CD300","89110-EF400, 89120-GH500"])}
+  rows.forEach((r,i)=>r.forEach((v,j)=>{if(v!=="")ws.getCell(i+2,j+1).value=v}));
+  for(let r=2;r<=Math.max(rows.length+1,300);r++)ws.getCell(r,3).dataValidation={type:"list",allowBlank:true,formulae:['"용접설비,조립설비,기타설비"']};
+  ws.views=[{state:"frozen",ySplit:1}];
+  try{await downloadWb(wb,"설비_생산품번_하위부품_양식.xlsx");toast(sample?"양식을 내려받았습니다 (예시 줄은 지우고 쓰세요)":"현재 등록 내용을 내려받았습니다. 고치거나 이어 적어 올리세요")}catch(err){toast("양식을 만들지 못했습니다: "+(err.message||err))}
 });
 
 /* ---------- 계정별 권한 (관리자) ---------- */
