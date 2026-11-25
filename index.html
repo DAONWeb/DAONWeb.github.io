@@ -267,6 +267,23 @@ table.stat td.bad{color:var(--ng);font-weight:700}
 .tpill.n{color:var(--muted);border:1px dashed var(--line)}
 .typehead .tpill{font-size:12px;padding:2px 10px}
 #v-wl-edit .miss{border-color:var(--ng)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--ng) 35%,transparent);background:var(--ng-bg)!important}
+.vseg-tog{min-height:36px;grid-template-columns:auto auto}.vseg-tog button{padding:0 14px;font-size:13px}
+.vlegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted)}
+.vlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.vchart{display:grid;gap:12px}
+.vrow{display:grid;grid-template-columns:minmax(64px,120px) minmax(0,1fr) auto;gap:10px;align-items:center}
+.vname{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vtrack{display:flex;gap:2px;height:22px;border-radius:4px;overflow:hidden;background:var(--sunk);cursor:pointer}
+.vtrack.bare{background:none;overflow:visible}
+.vseg{height:100%;min-width:3px}
+.vseg.done{background:var(--ok)}.vseg.started{background:var(--warn)}.vseg.none{background:var(--ng)}
+.vbar{height:18px;align-self:center;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
+.vval{font-family:var(--font-mono);font-size:12px;color:var(--muted);white-space:nowrap;text-align:right}
+.vval b{color:var(--fg)}
+.vaxis{display:grid;grid-template-columns:minmax(64px,120px) minmax(0,1fr) auto;gap:10px;font-size:11px;color:var(--muted)}
+.vaxis div:nth-child(2){display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:3px}
+#vtip{position:fixed;z-index:50;background:var(--fg);color:var(--bg);font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;pointer-events:none;max-width:240px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
+@media (max-width:480px){.vrow,.vaxis{grid-template-columns:64px minmax(0,1fr)}.vval{grid-column:2;text-align:left;margin-top:-6px}.vaxis div:nth-child(3){display:none}}
 .zone{border-radius:10px;padding:12px;display:grid;gap:12px;min-width:0;border:1px solid}
 .zone.za{background:color-mix(in srgb,var(--accent) 7%,var(--surface));border-color:color-mix(in srgb,var(--accent) 28%,var(--line))}
 .zone.zb{background:color-mix(in srgb,var(--ok) 8%,var(--surface));border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
@@ -522,11 +539,12 @@ table.stat td.bad{color:var(--ng);font-weight:700}
       </div>
       <div class="row" style="justify-content:space-between">
         <div class="sumline" id="w-sum"></div>
-        <button class="btn small" id="w-xlsx" type="button">양식 엑셀로 내보내기</button>
+        <div class="row"><div class="seg vseg-tog" id="w-view" role="group" aria-label="보기 방식"><button type="button" data-view="card">카드</button><button type="button" data-view="chart">그래프</button></div><button class="btn small" id="w-xlsx" type="button">양식 엑셀로 내보내기</button></div>
       </div>
-      <div class="progress">설비 카드를 누르면 그 설비의 작업일보를 쓰거나 이어서 씁니다. <span class="pill ng">미작성</span> <span class="pill warn">작업중</span>(기본정보만 입력) <span class="pill ok">완료</span>(완료수량까지 입력)</div>
+      <div class="progress" id="w-cardhint">설비 카드를 누르면 그 설비의 작업일보를 쓰거나 이어서 씁니다. <span class="pill ng">미작성</span> <span class="pill warn">작업중</span>(기본정보만 입력) <span class="pill ok">완료</span>(완료수량까지 입력)</div>
     </div>
     <div id="w-board" style="display:grid;gap:16px"></div>
+    <div id="w-chart" style="display:grid;gap:16px" hidden></div>
   </section>
 
   <!-- ===== 작업일보: 입력 ===== -->
@@ -633,7 +651,7 @@ table.stat td.bad{color:var(--ng);font-weight:700}
   <img id="lbImg" alt="">
   <div class="cap"><span id="lbCap"></span><button class="btn small" id="lbClose" type="button">닫기</button></div>
 </div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" hidden></div><div id="vtip" hidden></div>
 <datalist id="dl-parts"></datalist><datalist id="dl-eqparts"></datalist><datalist id="dl-subs"></datalist><datalist id="dl-workers"></datalist>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -1185,6 +1203,7 @@ function wlInit(){
   st.api.watchEquip(list=>{wl.equip=list;renderWlLines();renderBoard();renderEquip();if(location.hash==="#wl-edit"&&wl.edit)renderWlEdit()},e=>showBanner("설비 목록을 불러오지 못했습니다: "+st.api.errText(e)));
   st.api.watchBom(map=>{wl.bom=map||{};renderEquip();renderDatalists()},()=>{});
   watchWlDay();
+  setWlView(wlView);
   statsRange("month");
 }
 function watchWlDay(){
@@ -1237,8 +1256,44 @@ function eqCardHtml({eq,log}){
     ${s==="done"?`<span class="q">생산 ${fmtN(prod)}${ng?` · <span style="color:var(--ng)">NG ${fmtN(ng)}</span>`:""}${down?` · 비가동 ${down}분`:""}</span>`:s==="started"?`<span class="go">${starts[0]?esc(starts[0])+" 시작 · ":""}눌러서 완료수량 입력</span>`:`<span class="go">눌러서 작성</span>`}
   </button>`;
 }
+/* ---------- 설비 현황 그래프 (반별 실시간) ---------- */
+let wlView=ls.get("wl.view")==="chart"?"chart":"card";
+function setWlView(v){wlView=v;ls.set("wl.view",v);document.querySelectorAll("#w-view button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.view===v)));$("#w-board").hidden=v!=="card";$("#w-cardhint").hidden=v!=="card";$("#w-chart").hidden=v!=="chart";renderBoard()}
+function sumLogs(xs){const a={prod:0,ok:0,ng:0,down:0};xs.forEach(({log})=>((log&&log.items)||[]).forEach(it=>{a.prod+=it.prod||0;a.ok+=it.ok||0;a.ng+=it.ng||0;a.down+=downSum(it)}));return a}
+function renderChart(){
+  const box=$("#w-chart");if(!box||box.hidden)return;
+  const L=$("#w-line").value,{lines}=boardData();
+  let rows;
+  if(L){const g=lines[0];const eqs=g?g.eqs:[];const ts=[...new Set(eqs.map(x=>x.eq.gone?"__gone":(x.eq.type||"")))].sort((a,b)=>(a==="__gone")-(b==="__gone")||typeOrder(a)-typeOrder(b));
+    rows=ts.map(t=>({name:t==="__gone"?"삭제된 설비":typeLabel(t),eqs:eqs.filter(x=>(x.eq.gone?"__gone":(x.eq.type||""))===t)}))}
+  else rows=lines.map(g=>({name:g.line,eqs:g.eqs}));
+  rows.forEach(r=>{r.c=countStatus([{eqs:r.eqs}]);r.q=sumLogs(r.eqs)});
+  const all=rows.flatMap(r=>r.eqs),C=countStatus([{eqs:all}]),Q=sumLogs(all);
+  if(!C.n){box.innerHTML=`<div class="panel empty">표시할 설비가 없습니다.</div>`;return}
+  const pct=(a,b)=>b?Math.round(a/b*100):0;
+  const tiles=[["설비",`${C.n}대`,`${esc(wl.date)} ${shiftName(wl.shift)}`],["완료",`${C.done}대`,`${pct(C.done,C.n)}%`],["작업중",`${C.started}대`,`${pct(C.started,C.n)}%`],["미작성",`${C.none}대`,`${pct(C.none,C.n)}%`],["생산수량",fmtN(Q.prod),"EA"],["NG",fmtN(Q.ng),`불량률 ${rate(Q.ng,Q.prod)}`]];
+  const by=L?"설비구분별":"반별";
+  const maxP=Math.max(1,...rows.map(r=>r.q.prod)),step=(()=>{const raw=maxP/4,p=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,5,10].map(m=>m*p).find(v=>v>=raw)})(),top=Math.max(step*4,1);
+  const tip=(r)=>esc(`${r.name}|완료 ${r.c.done} · 작업중 ${r.c.started} · 미작성 ${r.c.none} (전체 ${r.c.n}대)|생산 ${fmtN(r.q.prod)} · OK ${fmtN(r.q.ok)} · NG ${fmtN(r.q.ng)} · 불량률 ${rate(r.q.ng,r.q.prod)}|비가동 ${fmtN(r.q.down)}분`);
+  box.innerHTML=`<div class="tiles">${tiles.map(([k,v,s2])=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s2}</div></div>`).join("")}</div>
+  <div class="panel"><div class="ihead"><h2>${by} 작업일보 작성 현황</h2><span class="progress">실시간</span></div>
+    <div class="vlegend"><span><i style="background:var(--ok)"></i>완료</span><span><i style="background:var(--warn)"></i>작업중</span><span><i style="background:var(--ng)"></i>미작성</span></div>
+    <div class="vchart">${rows.map(r=>`<div class="vrow"><div class="vname" title="${esc(r.name)}">${esc(r.name)}</div><div class="vtrack" data-tip="${tip(r)}" tabindex="0">${[["done",r.c.done],["started",r.c.started],["none",r.c.none]].filter(x=>x[1]).map(([k,n])=>`<span class="vseg ${k}" style="flex:${n} 1 0"></span>`).join("")}</div><div class="vval">완료 <b>${r.c.done}/${r.c.n}</b> · ${pct(r.c.done,r.c.n)}%</div></div>`).join("")}</div>
+  </div>
+  <div class="panel"><div class="ihead"><h2>${by} 생산수량</h2><span class="progress">EA · 완료수량 입력분</span></div>
+    <div class="vchart">${rows.map(r=>`<div class="vrow"><div class="vname">${esc(r.name)}</div><div class="vtrack bare" data-tip="${tip(r)}" tabindex="0"><span class="vbar" style="width:${(r.q.prod/top*100).toFixed(2)}%"></span></div><div class="vval"><b>${fmtN(r.q.prod)}</b>${r.q.ng?` · NG ${fmtN(r.q.ng)}`:""}</div></div>`).join("")}
+    <div class="vaxis"><div></div><div><span>0</span><span>${fmtN(top/2)}</span><span>${fmtN(top)}</span></div><div></div></div></div>
+  </div>`;
+}
+function showTip(el,x,y){const t=$("#vtip");const parts=el.dataset.tip.split("|");t.innerHTML=`<b>${parts[0]}</b><br>`+parts.slice(1).join("<br>");t.hidden=false;const w=t.offsetWidth,h=t.offsetHeight;t.style.left=Math.max(8,Math.min(innerWidth-w-8,x+12))+"px";t.style.top=Math.max(8,(y-h-12))+"px"}
+$("#w-chart").addEventListener("mousemove",e=>{const el=e.target.closest("[data-tip]");if(el)showTip(el,e.clientX,e.clientY);else $("#vtip").hidden=true});
+$("#w-chart").addEventListener("mouseleave",()=>{$("#vtip").hidden=true});
+$("#w-chart").addEventListener("click",e=>{const el=e.target.closest("[data-tip]");if(!el){$("#vtip").hidden=true;return}const r=el.getBoundingClientRect();showTip(el,r.left+r.width/2,r.top)});
+document.addEventListener("scroll",()=>{$("#vtip").hidden=true},{passive:true});
+$("#w-view").addEventListener("click",e=>{const b=e.target.closest("[data-view]");if(b)setWlView(b.dataset.view)});
 function renderBoard(){
   renderHomeWl();
+  if(wlView==="chart")renderChart();
   const box=$("#w-board");if(!box||!wl.date)return;
   const {lines,logs}=boardData(),c=countStatus(lines);
   $("#w-sum").innerHTML=`<span>${esc(wl.date)} ${shiftName(wl.shift)}</span><span><b>${c.n}</b>대</span><span><b style="color:var(--ok)">${c.done}</b>완료</span><span><b style="color:var(--warn)">${c.started}</b>작업중</span><span><b style="color:${c.none?"var(--ng)":"inherit"}">${c.none}</b>미작성</span>`;
