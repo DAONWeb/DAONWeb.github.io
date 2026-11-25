@@ -1320,7 +1320,7 @@ function renderWlEdit(){
       <div class="zone za"><div class="ztitle">품번 · 하위부품<span>품번 · LOT · 작업시간 · 하위부품 LOT</span></div>
       <div class="fields">
         <label class="field"><span class="label">품번</span>${inp(`data-f="partNo" data-i="${i}" class="mono" list="${eqParts.length?"dl-eqparts":"dl-parts"}" autocapitalize="characters" autocomplete="off" maxlength="40"`,it.partNo)}</label>
-        <label class="field"><span class="label">LOT NO</span>${inp(`data-f="lot" data-i="${i}" class="mono" autocapitalize="characters" maxlength="40"`,it.lot)}</label>
+        <div class="field"><span class="label">LOT NO</span><div class="tin">${inp(`data-f="lot" data-i="${i}" class="mono" autocapitalize="characters" maxlength="40" aria-label="LOT NO"`,it.lot)}<button type="button" data-today="${i}">오늘</button></div></div>
         <div class="field"><span class="label">작업 시작</span><div class="tin">${inp(`type="time" data-f="start" data-i="${i}"`,it.start)}<button type="button" data-now="start" data-i="${i}">지금</button></div></div>
         <div class="field"><span class="label">작업 종료</span><div class="tin">${inp(`type="time" data-f="end" data-i="${i}"`,it.end)}<button type="button" data-now="end" data-i="${i}">지금</button></div></div>
       </div>
@@ -1385,6 +1385,8 @@ $("#v-wl-edit").addEventListener("input",e=>{
 });
 $("#v-wl-edit").addEventListener("click",async e=>{
   const E=wl.edit;if(!E)return;
+  const tb=e.target.closest("[data-today]");
+  if(tb){const i=+tb.dataset.today,d=now(),v=String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate());E.items[i].lot=v;const el=document.querySelector(`input[data-f="lot"][data-i="${i}"]`);if(el)el.value=v;E._dirty=true;updateWlButtons();return}
   const nb=e.target.closest("[data-now]");
   if(nb){const i=+nb.dataset.i,f=nb.dataset.now,v=fmtTime(now()).slice(0,5);E.items[i][f]=v;const el=document.querySelector(`input[data-f="${f}"][data-i="${i}"]`);if(el)el.value=v;E._dirty=true;updateCalc(i);updateWlButtons();return}
   const pk=e.target.closest("[data-pick]");
