@@ -1305,28 +1305,25 @@ function renderWlEdit(){
       <div class="fields">
         <label class="field"><span class="label">품번</span>${inp(`data-f="partNo" data-i="${i}" class="mono" list="${eqParts.length?"dl-eqparts":"dl-parts"}" autocapitalize="characters" autocomplete="off" maxlength="40"`,it.partNo)}</label>
         <label class="field"><span class="label">LOT NO</span>${inp(`data-f="lot" data-i="${i}" class="mono" autocapitalize="characters" maxlength="40"`,it.lot)}</label>
-        <label class="field"><span class="label">작업 내용</span>${inp(`data-f="content" data-i="${i}" placeholder="예: SPOT 용접" maxlength="60"`,it.content)}</label>
         <div class="field"><span class="label">작업 시작</span><div class="tin">${inp(`type="time" data-f="start" data-i="${i}"`,it.start)}<button type="button" data-now="start" data-i="${i}">지금</button></div></div>
+        <div class="field"><span class="label">작업 종료</span><div class="tin">${inp(`type="time" data-f="end" data-i="${i}"`,it.end)}<button type="button" data-now="end" data-i="${i}">지금</button></div></div>
       </div>
       ${eqParts.length?`<div class="chips"><span class="label">이 설비 생산품번</span>${eqParts.map(p=>`<button type="button" class="chip${normPart(it.partNo)===p?" on":""}" data-pick="${esc(p)}" data-i="${i}">${esc(p)}</button>`).join("")}</div>`:""}
       <div class="bomhint" id="bh-${i}"${bomOf(normPart(it.partNo)).length?"":" hidden"}>${esc(bomText(it.partNo))}</div>
-      <div class="phase">작업 종료 후 입력<span>완료수량 · 비가동</span></div>
-      <div class="fields">
-        <div class="field"><span class="label">작업 종료</span><div class="tin">${inp(`type="time" data-f="end" data-i="${i}"`,it.end)}<button type="button" data-now="end" data-i="${i}">지금</button></div></div>
-      </div>
+      <div class="phase">작업 종료 후 입력<span>완료수량</span></div>
       <div class="fields tight">
         <label class="field"><span class="label">생산수량(EA)</span>${inp(`data-f="prod" data-i="${i}" inputmode="numeric" class="mono"`,it.prod)}</label>
         <label class="field"><span class="label">OK</span>${inp(`data-f="ok" data-i="${i}" inputmode="numeric" class="mono"`,it.ok)}</label>
         <label class="field"><span class="label">NG</span>${inp(`data-f="ng" data-i="${i}" inputmode="numeric" class="mono"`,it.ng)}</label>
       </div>
-      <div class="label">비가동시간(분)</div>
+      ${i===0?`<div id="we-subs" style="display:grid;gap:10px">${subsHtml(E)}</div>`:""}
+      <div class="phase">비가동시간(분)<span>${E.items.length>1?`품번 ${i+1}`:""}</span></div>
       <div class="fields tight">${DOWN.map(([k,lab])=>`<label class="field"><span class="label">${lab}</span>${inp(`data-f="down" data-d="${k}" data-i="${i}" inputmode="numeric" class="mono" placeholder="0"`,it.down[k]??"")}</label>`).join("")}</div>
       <div class="calc" id="calc-${i}"></div>
     </div>`;
   });
   if(E.items.length<MAX_ITEMS)h+=`<button class="btn" type="button" data-act="additem">+ 품번 추가 (양식 최대 ${MAX_ITEMS}개)</button>`;
-  h+=`<div class="panel" id="we-subs">${subsHtml(E)}  </div>
-  <div class="panel">
+  h+=`  <div class="panel">
     <label class="field"><span class="label">특이사항</span><textarea data-f="notes" maxlength="1000" placeholder="불량·이상발생, 설비 문제 등">${esc(E.notes)}</textarea></label>
     <details class="ref"><summary>참조사항</summary><ol>${REF_NOTES.map(t=>`<li>${esc(t)}</li>`).join("")}</ol></details>
   </div>
@@ -1335,7 +1332,7 @@ function renderWlEdit(){
   E.items.forEach((_,i)=>updateCalc(i));
   updateWlButtons();
 }
-function subsHtml(E){return `<h2>하위부품 LOT</h2><div class="progress">생산품번에 하위부품이 등록돼 있으면 품번을 고를 때 자동으로 채워집니다. LOT(입고일)만 입력하세요.</div>
+function subsHtml(E){return `<div class="phase">하위부품 LOT<span>${E.items.length>1?"품번 1~"+E.items.length+" 공통 · ":""}품번을 고르면 자동으로 채워짐 · LOT(입고일)만 입력</span></div>
     ${E.subs.map((s,i)=>`<div class="subrow"><span class="n">${i+1}</span>${inp(`data-f="partNo" data-s="${i}" class="mono" placeholder="하위부품 품번" list="dl-subs" autocapitalize="characters" autocomplete="off" maxlength="40" aria-label="하위부품 ${i+1} 품번"`,s.partNo)}${inp(`data-f="lot" data-s="${i}" class="mono" placeholder="LOT (입고일)" maxlength="40" aria-label="하위부품 ${i+1} LOT"`,s.lot)}<button class="xbtn" type="button" data-act="rmsub" data-s="${i}" aria-label="${i+1}번 줄 지우기">×</button></div>`).join("")}
     ${E.subs.length<MAX_SUBS?`<div class="row"><button class="btn small" type="button" data-act="addsub">+ 하위부품 줄 추가</button></div>`:""}`}
 function updateCalc(i){
