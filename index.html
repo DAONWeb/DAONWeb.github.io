@@ -266,6 +266,7 @@ table.stat td.bad{color:var(--ng);font-weight:700}
 .tpill.e{color:var(--warn);background:var(--warn-bg)}
 .tpill.n{color:var(--muted);border:1px dashed var(--line)}
 .typehead .tpill{font-size:12px;padding:2px 10px}
+#v-wl-edit .miss{border-color:var(--ng)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--ng) 35%,transparent);background:var(--ng-bg)!important}
 .zone{border-radius:10px;padding:12px;display:grid;gap:12px;min-width:0;border:1px solid}
 .zone.za{background:color-mix(in srgb,var(--accent) 7%,var(--surface));border-color:color-mix(in srgb,var(--accent) 28%,var(--line))}
 .zone.zb{background:color-mix(in srgb,var(--ok) 8%,var(--surface));border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
@@ -1367,11 +1368,12 @@ function updateWlButtons(){
   const E=wl.edit;if(!E)return;const done=E.status==="done";
   $("#we-base").hidden=done;
   $("#we-done").textContent=done?"수정 저장":"작업 완료 저장";
-  $("#we-hint").textContent=wl.saving?"저장 중…":E._dirty?"저장하지 않은 내용이 있습니다":E._new?"작업 시작 때 기본정보를 저장하세요":done?"완료된 일보입니다":"작업이 끝나면 완료수량을 넣고 완료 저장";
+  $("#we-hint").textContent=wl.saving?"저장 중…":E._dirty?"저장하지 않은 내용이 있습니다":E._new?"작업자·품번·LOT·시작시각·하위부품 LOT을 넣고 기본정보 저장":done?"완료된 일보입니다":"작업이 끝나면 완료수량을 넣고 완료 저장";
   $("#we-base").disabled=$("#we-done").disabled=wl.saving;
 }
 $("#v-wl-edit").addEventListener("input",e=>{
   const t=e.target,f=t.dataset.f,E=wl.edit;if(!f||!E)return;
+  t.classList.remove("miss");
   if(t.dataset.i!=null){const i=+t.dataset.i,it=E.items[i];if(!it)return;
     if(f==="down")it.down[t.dataset.d]=t.value;
     else{it[f]=t.value;
@@ -1440,34 +1442,42 @@ $("#we-done").addEventListener("click",()=>saveWl(true));
 window.addEventListener("beforeunload",e=>{if(wl.edit&&wl.edit._dirty){e.preventDefault();e.returnValue=""}});
 
 function collectWl(done){
-  const E=wl.edit,errs=[];let mismatch=null;
-  if(!E.worker.trim())errs.push("작업자 이름을 입력하세요");
-  if(!E.writer.trim())errs.push("작성 반장 이름을 입력하세요");
+  const E=wl.edit,errs=[],miss=[];let mismatch=null;
+  if(!E.worker.trim()){errs.push("작업자 이름을 입력하세요");miss.push('[data-f="worker"]')}
+  if(!E.writer.trim()){errs.push("작성 반장 이름을 입력하세요");miss.push('[data-f="writer"]')}
   const used=E.items.filter(it=>[it.partNo,it.lot,it.content,it.start,it.end,it.prod,it.ok,it.ng].some(v=>String(v??"").trim())||DOWN.some(([k])=>String(it.down[k]??"").trim()));
-  if(!used.length)errs.push("품번을 하나 이상 입력하세요");
+  if(!used.length){errs.push("품번을 하나 이상 입력하세요");miss.push('[data-f="partNo"][data-i="0"]')}
   const items=used.map((it,idx)=>{
-    const n=idx+1,num={};
+    const n=idx+1,num={},oi=E.items.indexOf(it),sel=f=>`[data-f="${f}"][data-i="${oi}"]`;
     ["prod","ok","ng"].forEach(k=>{num[k]=numOrNull(it[k]);if(Number.isNaN(num[k]))errs.push(`품번 ${n}: ${k==="prod"?"생산수량":k.toUpperCase()}은 0 이상의 숫자로 입력하세요`)});
     const down={};DOWN.forEach(([k,lab])=>{const v=numOrNull(it.down[k]);if(Number.isNaN(v))errs.push(`품번 ${n}: 비가동 ${lab}은 분 단위 숫자로 입력하세요`);down[k]=(v&&!Number.isNaN(v))?v:0});
-    if(!it.partNo.trim())errs.push(`품번 ${n}: 품번을 입력하세요`);
-    if(!it.start)errs.push(`품번 ${n}: 작업 시작 시각을 입력하세요`);
+    if(!it.partNo.trim()){errs.push(`품번 ${n}: 품번을 입력하세요`);miss.push(sel("partNo"))}
+    if(!it.lot.trim()){errs.push(`품번 ${n}: LOT NO를 입력하세요`);miss.push(sel("lot"))}
+    if(!it.start){errs.push(`품번 ${n}: 작업 시작 시각을 입력하세요`);miss.push(sel("start"))}
     if(done){
-      if(!it.end)errs.push(`품번 ${n}: 작업 종료 시각을 입력하세요`);
-      if(num.prod==null)errs.push(`품번 ${n}: 생산수량을 입력하세요`);
-      if(num.ok==null)errs.push(`품번 ${n}: OK 수량을 입력하세요`);
-      if(num.ng==null)errs.push(`품번 ${n}: NG 수량을 입력하세요 (없으면 0)`);
+      if(!it.end){errs.push(`품번 ${n}: 작업 종료 시각을 입력하세요`);miss.push(sel("end"))}
+      if(num.prod==null){errs.push(`품번 ${n}: 생산수량을 입력하세요`);miss.push(sel("prod"))}
+      if(num.ok==null){errs.push(`품번 ${n}: OK 수량을 입력하세요`);miss.push(sel("ok"))}
+      if(num.ng==null){errs.push(`품번 ${n}: NG 수량을 입력하세요 (없으면 0)`);miss.push(sel("ng"))}
       if(num.prod!=null&&num.ok!=null&&num.ng!=null&&!Number.isNaN(num.prod+num.ok+num.ng)&&num.ok+num.ng!==num.prod&&!mismatch)mismatch=`품번 ${n}: OK+NG(${num.ok+num.ng})가 생산수량(${num.prod})과 다릅니다`;
     }
     const clean=v=>(v==null||Number.isNaN(v))?null:v;
     return {partNo:it.partNo.trim().toUpperCase(),lot:it.lot.trim(),content:it.content.trim(),start:it.start||"",end:it.end||"",prod:clean(num.prod),ok:clean(num.ok),ng:clean(num.ng),down};
   });
+  E.subs.forEach((x,si)=>{const pn=x.partNo.trim(),lt=x.lot.trim();
+    if(pn&&!lt){errs.push(`하위부품 ${si+1}(${pn.toUpperCase()}): LOT(입고일)을 입력하세요`);miss.push(`[data-f="lot"][data-s="${si}"]`)}
+    if(!pn&&lt){errs.push(`하위부품 ${si+1}: 하위부품 품번을 입력하세요`);miss.push(`[data-f="partNo"][data-s="${si}"]`)}});
   const subs=E.subs.filter(s=>s.partNo.trim()||s.lot.trim()).map(s=>({partNo:s.partNo.trim().toUpperCase(),lot:s.lot.trim()}));
-  return {errs,mismatch,data:{worker:E.worker.trim(),writer:E.writer.trim(),items,subs,notes:E.notes.trim()}};
+  return {errs,miss,mismatch,data:{worker:E.worker.trim(),writer:E.writer.trim(),items,subs,notes:E.notes.trim()}};
 }
 async function saveWl(done){
   const E=wl.edit;if(!E||wl.saving)return;
-  const {errs,mismatch,data}=collectWl(done);
-  if(errs.length){setWlStatus(errs.slice(0,4).join(" / ")+(errs.length>4?` 외 ${errs.length-4}건`:""));return}
+  const {errs,miss,mismatch,data}=collectWl(done);
+  document.querySelectorAll("#v-wl-edit .miss").forEach(x=>x.classList.remove("miss"));
+  if(errs.length){miss.forEach(q=>{const el=document.querySelector("#we-body "+q);if(el)el.classList.add("miss")});
+    setWlStatus(errs.slice(0,4).join(" / ")+(errs.length>4?` 외 ${errs.length-4}건`:""));
+    const first=document.querySelector("#we-body .miss");if(first){first.scrollIntoView({block:"center",behavior:"smooth"});setTimeout(()=>first.focus({preventScroll:true}),300)}
+    return}
   if(mismatch){if(Date.now()-wl.armDone>4000){wl.armDone=Date.now();setWlStatus(mismatch+". 맞으면 저장 버튼을 한 번 더 누르세요.");return}}
   setWlStatus("");
   data.status=done||E.status==="done"?"done":"started";
