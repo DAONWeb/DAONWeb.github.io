@@ -618,7 +618,7 @@ table.stat td.bad{color:var(--ng);font-weight:700}
   <div class="cap"><span id="lbCap"></span><button class="btn small" id="lbClose" type="button">닫기</button></div>
 </div>
 <div class="toast" id="toast" hidden></div>
-<datalist id="dl-parts"></datalist><datalist id="dl-workers"></datalist>
+<datalist id="dl-parts"></datalist><datalist id="dl-eqparts"></datalist><datalist id="dl-subs"></datalist><datalist id="dl-workers"></datalist>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script type="module">
@@ -1192,6 +1192,8 @@ function renderDatalists(){
   if(wl.last){(wl.last.items||[]).forEach(it=>{if(it.partNo)parts.add(it.partNo)});if(wl.last.worker)workers.add(wl.last.worker)}
   wl.equip.forEach(e=>(e.parts||[]).forEach(p=>parts.add(p)));Object.entries(wl.bom||{}).forEach(([p,subs])=>{parts.add(p);(subs||[]).forEach(x=>parts.add(x))});
   $("#dl-parts").innerHTML=[...parts].sort().map(p=>`<option value="${esc(p)}">`).join("");
+  const subs=new Set();Object.values(wl.bom||{}).forEach(a=>(a||[]).forEach(x=>subs.add(x)));[wl.day,wl.stats||[]].forEach(arr=>arr.forEach(l=>(l.subs||[]).forEach(x=>{if(x.partNo)subs.add(x.partNo)})));
+  $("#dl-subs").innerHTML=[...subs].sort().map(p=>`<option value="${esc(p)}">`).join("");
   $("#dl-workers").innerHTML=[...workers].sort().map(p=>`<option value="${esc(p)}">`).join("");
 }
 function setShiftSeg(){document.querySelectorAll("#w-shift button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===wl.shift)))}
@@ -1286,6 +1288,7 @@ function renderWlEdit(){
   const [pc,pl]=ST_LABEL[E._new?"none":E.status==="done"?"done":"started"];
   const ro=(lab,v)=>`<div class="field"><span class="label">${lab}</span><div class="ro">${v}</div></div>`;
   const curEq=eqOf(E.equipId),eqParts=(curEq&&curEq.parts)||[];
+  $("#dl-eqparts").innerHTML=eqParts.map(p=>`<option value="${esc(p)}">`).join("");
   let h=`<div class="panel">
     <div class="ihead"><h2>${esc(E.line)} · <span class="mono">${esc(E.equipNo)}</span>${curEq&&curEq.type?typePill(curEq.type):""}</h2><span class="pill ${pc}">${E._new?"새로 작성":pl}</span></div>
     <div class="fields">
@@ -1300,7 +1303,7 @@ function renderWlEdit(){
     h+=`<div class="panel">
       <div class="ihead"><h2>품번 ${i+1}</h2>${E.items.length>1?`<button class="btn small danger" type="button" data-act="rmitem" data-i="${i}">이 품번 빼기</button>`:""}</div>
       <div class="fields">
-        <label class="field"><span class="label">품번</span>${inp(`data-f="partNo" data-i="${i}" class="mono" list="dl-parts" autocapitalize="characters" autocomplete="off" maxlength="40"`,it.partNo)}</label>
+        <label class="field"><span class="label">품번</span>${inp(`data-f="partNo" data-i="${i}" class="mono" list="${eqParts.length?"dl-eqparts":"dl-parts"}" autocapitalize="characters" autocomplete="off" maxlength="40"`,it.partNo)}</label>
         <label class="field"><span class="label">LOT NO</span>${inp(`data-f="lot" data-i="${i}" class="mono" autocapitalize="characters" maxlength="40"`,it.lot)}</label>
         <label class="field"><span class="label">작업 내용</span>${inp(`data-f="content" data-i="${i}" placeholder="예: SPOT 용접" maxlength="60"`,it.content)}</label>
         <div class="field"><span class="label">작업 시작</span><div class="tin">${inp(`type="time" data-f="start" data-i="${i}"`,it.start)}<button type="button" data-now="start" data-i="${i}">지금</button></div></div>
@@ -1333,7 +1336,7 @@ function renderWlEdit(){
   updateWlButtons();
 }
 function subsHtml(E){return `<h2>하위부품 LOT</h2><div class="progress">생산품번에 하위부품이 등록돼 있으면 품번을 고를 때 자동으로 채워집니다. LOT(입고일)만 입력하세요.</div>
-    ${E.subs.map((s,i)=>`<div class="subrow"><span class="n">${i+1}</span>${inp(`data-f="partNo" data-s="${i}" class="mono" placeholder="하위부품 품번" list="dl-parts" autocapitalize="characters" autocomplete="off" maxlength="40" aria-label="하위부품 ${i+1} 품번"`,s.partNo)}${inp(`data-f="lot" data-s="${i}" class="mono" placeholder="LOT (입고일)" maxlength="40" aria-label="하위부품 ${i+1} LOT"`,s.lot)}<button class="xbtn" type="button" data-act="rmsub" data-s="${i}" aria-label="${i+1}번 줄 지우기">×</button></div>`).join("")}
+    ${E.subs.map((s,i)=>`<div class="subrow"><span class="n">${i+1}</span>${inp(`data-f="partNo" data-s="${i}" class="mono" placeholder="하위부품 품번" list="dl-subs" autocapitalize="characters" autocomplete="off" maxlength="40" aria-label="하위부품 ${i+1} 품번"`,s.partNo)}${inp(`data-f="lot" data-s="${i}" class="mono" placeholder="LOT (입고일)" maxlength="40" aria-label="하위부품 ${i+1} LOT"`,s.lot)}<button class="xbtn" type="button" data-act="rmsub" data-s="${i}" aria-label="${i+1}번 줄 지우기">×</button></div>`).join("")}
     ${E.subs.length<MAX_SUBS?`<div class="row"><button class="btn small" type="button" data-act="addsub">+ 하위부품 줄 추가</button></div>`:""}`}
 function updateCalc(i){
   const it=wl.edit.items[i],el=$("#calc-"+i);if(!el)return;
