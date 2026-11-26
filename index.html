@@ -272,18 +272,22 @@ table.stat td.bad{color:var(--ng);font-weight:700}
 .vlegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .vchart{display:grid;gap:12px}
 .vrow{display:grid;grid-template-columns:minmax(64px,120px) minmax(0,1fr) auto;gap:10px;align-items:center}
+.vgroup{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:14px;margin-top:4px;padding-top:8px;border-top:1px solid var(--line)}
+.vgroup:first-child{border-top:0;padding-top:0;margin-top:0}
+.vgroup span{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--muted)}
+.vsub .vname{font-weight:600}
 .vname{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vtrack{display:flex;gap:2px;height:22px;border-radius:4px;overflow:hidden;background:var(--sunk);cursor:pointer}
 .vtrack.bare{background:none;overflow:visible}
 .vseg{height:100%;min-width:3px}
 .vseg.done{background:var(--ok)}.vseg.started{background:var(--warn)}.vseg.none{background:var(--ng)}
 .vbar{height:18px;align-self:center;background:var(--accent);border-radius:0 4px 4px 0;min-width:2px}
-.vval{font-family:var(--font-mono);font-size:12px;color:var(--muted);white-space:nowrap;text-align:right}
+.vval{min-width:112px;font-family:var(--font-mono);font-size:12px;color:var(--muted);white-space:nowrap;text-align:right}
 .vval b{color:var(--fg)}
 .vaxis{display:grid;grid-template-columns:minmax(64px,120px) minmax(0,1fr) auto;gap:10px;font-size:11px;color:var(--muted)}
 .vaxis div:nth-child(2){display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:3px}
 #vtip{position:fixed;z-index:50;background:var(--fg);color:var(--bg);font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;pointer-events:none;max-width:240px;box-shadow:0 6px 20px rgba(0,0,0,.2)}
-@media (max-width:480px){.vrow,.vaxis{grid-template-columns:64px minmax(0,1fr)}.vval{grid-column:2;text-align:left;margin-top:-6px}.vaxis div:nth-child(3){display:none}}
+@media (max-width:480px){.vrow,.vaxis{grid-template-columns:64px minmax(0,1fr)}.vval{min-width:0;grid-column:2;text-align:left;margin-top:-6px}.vaxis div:nth-child(3){display:none}}
 .zone{border-radius:10px;padding:12px;display:grid;gap:12px;min-width:0;border:1px solid}
 .zone.za{background:color-mix(in srgb,var(--accent) 7%,var(--surface));border-color:color-mix(in srgb,var(--accent) 28%,var(--line))}
 .zone.zb{background:color-mix(in srgb,var(--ok) 8%,var(--surface));border-color:color-mix(in srgb,var(--ok) 30%,var(--line))}
@@ -1271,14 +1275,23 @@ function renderChart(){
   const all=rows.flatMap(r=>r.eqs),C=countStatus([{eqs:all}]),Q=sumLogs(all);
   if(!C.n){box.innerHTML=`<div class="panel empty">표시할 설비가 없습니다.</div>`;return}
   const pct=(a,b)=>b?Math.round(a/b*100):0;
-  const tiles=[["설비",`${C.n}대`,`${esc(wl.date)} ${shiftName(wl.shift)}`],["완료",`${C.done}대`,`${pct(C.done,C.n)}%`],["작업중",`${C.started}대`,`${pct(C.started,C.n)}%`],["미작성",`${C.none}대`,`${pct(C.none,C.n)}%`],["생산수량",fmtN(Q.prod),"EA"],["NG",fmtN(Q.ng),`불량률 ${rate(Q.ng,Q.prod)}`]];
+  const tkey=x=>x.eq.gone?"__gone":(x.eq.type||"");
+  const typeTiles=[...EQ_TYPES,""].map(t=>{const xs=all.filter(x=>tkey(x)===t);if(!xs.length)return null;const c=countStatus([{eqs:xs}]);return [typeLabel(t),`${c.n}대`,`완료 ${c.done}/${c.n}${c.none?` · 미작성 ${c.none}`:""}`]}).filter(Boolean);
+  const tiles=[["전체 설비",`${C.n}대`,`${esc(wl.date)} ${shiftName(wl.shift)}`],["완료",`${C.done}대`,`${pct(C.done,C.n)}%`],["작업중",`${C.started}대`,`${pct(C.started,C.n)}%`],["미작성",`${C.none}대`,`${pct(C.none,C.n)}%`],["생산수량",fmtN(Q.prod),"EA"],["NG",fmtN(Q.ng),`불량률 ${rate(Q.ng,Q.prod)}`]];
   const by=L?"설비구분별":"반별";
+  /* 전체 반 보기: 반마다 용접설비 / 조립설비 / 기타설비로 나눠 표시 */
+  let statusRows=rows;
+  if(!L){statusRows=[];rows.forEach(r=>{const ts=[...new Set(r.eqs.map(tkey))].sort((a,b)=>(a==="__gone")-(b==="__gone")||typeOrder(a)-typeOrder(b));
+    if(ts.length<=1&&!ts[0]){statusRows.push(r);return}
+    statusRows.push({head:r.name,sub:`완료 ${r.c.done}/${r.c.n}`});
+    ts.forEach(t=>{const xs=r.eqs.filter(x=>tkey(x)===t),o={name:`${r.name} ${t==="__gone"?"삭제된 설비":typeLabel(t)}`,eqs:xs,indent:true,pill:t==="__gone"?`<span class="tpill n">삭제된 설비</span>`:typePill(t)};o.c=countStatus([{eqs:xs}]);o.q=sumLogs(xs);statusRows.push(o)})})}
   const maxP=Math.max(1,...rows.map(r=>r.q.prod)),step=(()=>{const raw=maxP/4,p=Math.pow(10,Math.floor(Math.log10(raw)));return [1,2,5,10].map(m=>m*p).find(v=>v>=raw)})(),top=Math.max(step*4,1);
   const tip=(r)=>esc(`${r.name}|완료 ${r.c.done} · 작업중 ${r.c.started} · 미작성 ${r.c.none} (전체 ${r.c.n}대)|생산 ${fmtN(r.q.prod)} · OK ${fmtN(r.q.ok)} · NG ${fmtN(r.q.ng)} · 불량률 ${rate(r.q.ng,r.q.prod)}|비가동 ${fmtN(r.q.down)}분`);
-  box.innerHTML=`<div class="tiles">${tiles.map(([k,v,s2])=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s2}</div></div>`).join("")}</div>
+  const tileHtml=arr=>`<div class="tiles">${arr.map(([k,v,s2])=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s2}</div></div>`).join("")}</div>`;
+  box.innerHTML=`${tileHtml(tiles)}${typeTiles.length>1||(typeTiles[0]&&typeTiles[0][0]!=="구분 없음")?tileHtml(typeTiles):""}
   <div class="panel"><div class="ihead"><h2>${by} 작업일보 작성 현황</h2><span class="progress">실시간</span></div>
     <div class="vlegend"><span><i style="background:var(--ok)"></i>완료</span><span><i style="background:var(--warn)"></i>작업중</span><span><i style="background:var(--ng)"></i>미작성</span></div>
-    <div class="vchart">${rows.map(r=>`<div class="vrow"><div class="vname" title="${esc(r.name)}">${esc(r.name)}</div><div class="vtrack" data-tip="${tip(r)}" tabindex="0">${[["done",r.c.done],["started",r.c.started],["none",r.c.none]].filter(x=>x[1]).map(([k,n])=>`<span class="vseg ${k}" style="flex:${n} 1 0"></span>`).join("")}</div><div class="vval">완료 <b>${r.c.done}/${r.c.n}</b> · ${pct(r.c.done,r.c.n)}%</div></div>`).join("")}</div>
+    <div class="vchart">${statusRows.map(r=>r.head?`<div class="vgroup">${esc(r.head)}<span>${r.sub}</span></div>`:`<div class="vrow${r.indent?" vsub":""}"><div class="vname" title="${esc(r.name)}">${r.pill||esc(r.name)}</div><div class="vtrack" data-tip="${tip(r)}" tabindex="0">${[["done",r.c.done],["started",r.c.started],["none",r.c.none]].filter(x=>x[1]).map(([k,n])=>`<span class="vseg ${k}" style="flex:${n} 1 0"></span>`).join("")}</div><div class="vval">완료 <b>${r.c.done}/${r.c.n}</b> · ${pct(r.c.done,r.c.n)}%</div></div>`).join("")}</div>
   </div>
   <div class="panel"><div class="ihead"><h2>${by} 생산수량</h2><span class="progress">EA · 완료수량 입력분</span></div>
     <div class="vchart">${rows.map(r=>`<div class="vrow"><div class="vname">${esc(r.name)}</div><div class="vtrack bare" data-tip="${tip(r)}" tabindex="0"><span class="vbar" style="width:${(r.q.prod/top*100).toFixed(2)}%"></span></div><div class="vval"><b>${fmtN(r.q.prod)}</b>${r.q.ng?` · NG ${fmtN(r.q.ng)}`:""}</div></div>`).join("")}
